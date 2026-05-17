@@ -97,6 +97,7 @@ export class GameScene extends BaseScene {
 
     update(_time: number, delta: number): void {
         this.chain.update(_time, delta);
+        this.shooter.update(this.input.activePointer.x, this.input.activePointer.y);
 
         this.projectilePool.forEachAlive((p) => {
             const m = p.marble;
