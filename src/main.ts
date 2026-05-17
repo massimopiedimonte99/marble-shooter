@@ -18,4 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
     scene: [BootScene, PreloadScene, MenuScene, GameScene],
 };
 
-document.addEventListener('DOMContentLoaded', () => new Game(config));
+document.addEventListener('DOMContentLoaded', () => {
+    const game = new Game(config);
+    if (import.meta.env.DEV) (window as any).__game = game;
+});

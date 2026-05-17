@@ -1,9 +1,11 @@
 import { Math as PhaserMath } from 'phaser';
 import { CHAIN_SPEED, MARBLE_SPACING } from '@/constants/Config';
-import { LinkedList } from '@/utils/LinkedList';
+import { LinkedList, LinkedListNode } from '@/utils/LinkedList';
 import { Marble } from '@/gameplay/Marble';
 import { MarbleColor } from '@/gameplay/MarbleColor';
 import { MarblePool } from '@/pool/MarblePool';
+
+export type { LinkedListNode };
 
 export class MarbleChain {
     private chain = new LinkedList<Marble>();
@@ -43,6 +45,42 @@ export class MarbleChain {
             }
             i++;
         });
+    }
+
+    forEachMarble(cb: (m: Marble) => void): void {
+        this.chain.forEach((m) => cb(m));
+    }
+
+    findClosestNode(x: number, y: number, maxDistSq: number): LinkedListNode<Marble> | null {
+        let best: LinkedListNode<Marble> | null = null;
+        let bestDistSq = maxDistSq;
+        let cur = this.chain.head;
+        while (cur) {
+            const m = cur.value;
+            if (m.visible) {
+                const dx = m.x - x;
+                const dy = m.y - y;
+                const d2 = dx * dx + dy * dy;
+                if (d2 < bestDistSq) { bestDistSq = d2; best = cur; }
+            }
+            cur = cur.next;
+        }
+        return best;
+    }
+
+    insertMarbleAfter(after: LinkedListNode<Marble>, marble: Marble): { afterIndex: number; shiftedCount: number } {
+        const newNode = this.chain.insertAfter(after, marble);
+        marble.node = newNode;
+
+        let afterIndex = 0;
+        let n: LinkedListNode<Marble> | null = this.chain.head;
+        while (n && n !== newNode) { afterIndex++; n = n.next; }
+
+        let shifted = 0;
+        let cur = newNode.next;
+        while (cur) { shifted++; cur = cur.next; }
+
+        return { afterIndex, shiftedCount: shifted };
     }
 
     get length(): number { return this.chain.length; }
