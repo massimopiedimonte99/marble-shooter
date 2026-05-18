@@ -5,6 +5,9 @@ export enum GameEvent {
     SettingsMuteChanged = 'settings:mute-changed',
     ProjectileFired = 'projectile:fired',
     MarbleInserted = 'marble:inserted',
+    Match = 'match',
+    ChainReaction = 'chainReaction',
+    ChainEmpty = 'chainEmpty',
 }
 
 export interface EventPayloads {
@@ -12,4 +15,7 @@ export interface EventPayloads {
     [GameEvent.SettingsMuteChanged]: { music: boolean; sfx: boolean };
     [GameEvent.ProjectileFired]: { color: MarbleColor };
     [GameEvent.MarbleInserted]: { color: MarbleColor; x: number; y: number };
+    [GameEvent.Match]: { count: number; color: MarbleColor; position: { x: number; y: number } };
+    [GameEvent.ChainReaction]: { steps: number; totalRemoved: number };
+    [GameEvent.ChainEmpty]: Record<string, never>;
 }

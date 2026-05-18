@@ -1,6 +1,8 @@
 export type DiagKind =
     | 'projectile_fire' | 'projectile_release'
     | 'collision' | 'chain_insert'
+    | 'match_detected' | 'chain_removed' | 'resolution_complete'
+    | 'audio_play'
     | 'frame_stats';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }

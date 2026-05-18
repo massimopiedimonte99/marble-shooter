@@ -26,4 +26,8 @@ export class MarblePool {
         marble.node = null;
         this.group.killAndHide(marble);
     }
+
+    get freeCount(): number {
+        return this.group.maxSize - this.group.countActive();
+    }
 }

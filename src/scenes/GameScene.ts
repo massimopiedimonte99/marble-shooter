@@ -13,6 +13,7 @@ import { CollisionResolver } from '@/gameplay/CollisionResolver';
 import { diag } from '@/utils/DiagLogger';
 import { eventBus } from '@/events/EventBus';
 import { GameEvent } from '@/events/EventTypes';
+import { audioManager } from '@/audio/AudioManager';
 
 export class GameScene extends BaseScene {
     public chain!: MarbleChain;
@@ -89,9 +90,34 @@ export class GameScene extends BaseScene {
             color: '#444466',
         }).setOrigin(0, 1);
 
+        audioManager.bindEvents();
+
+        eventBus.on(GameEvent.Match, () => {
+            diag.log('frame_stats', {
+                fps: Math.round(this.game.loop.actualFps),
+                chainLen: this.chain.length,
+                projFree: this.projectilePool.freeCount,
+                poolMarbleFree: this.marblePool.freeCount,
+            });
+        });
+
         if (import.meta.env.DEV) {
             (window as Window & { __game?: Phaser.Game; __eventBus?: typeof eventBus }).__game = this.game;
             (window as any).__eventBus = eventBus;
+            (window as any).__audioMgr = audioManager;
+            (window as any).__shooter = this.shooter;
+            (window as any).__chainDebug = {
+                snapshot: () => {
+                    const out: MarbleColor[] = [];
+                    this.chain.forEachMarble((m) => out.push(m.marbleColor));
+                    return out;
+                },
+                length: () => this.chain.length,
+                poolFree: () => this.marblePool.freeCount,
+                forceSpawnPattern: (colors: MarbleColor[]) => {
+                    for (const color of colors) this.chain.spawnMarble(color);
+                },
+            };
         }
     }
 

@@ -40,6 +40,12 @@ export class Shooter {
         this._barrel.setRotation(angle);
     }
 
+    forceNextColor(color: MarbleColor): void {
+        if (!import.meta.env.DEV) return;
+        this._nextColor = color;
+        this._preview.setFillStyle(MARBLE_COLOR_HEX[color]);
+    }
+
     private _rollColor(): MarbleColor {
         return Math.floor(Math.random() * MARBLE_COLOR_COUNT) as MarbleColor;
     }

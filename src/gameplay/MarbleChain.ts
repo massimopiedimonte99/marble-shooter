@@ -4,6 +4,14 @@ import { LinkedList, LinkedListNode } from '@/utils/LinkedList';
 import { Marble } from '@/gameplay/Marble';
 import { MarbleColor } from '@/gameplay/MarbleColor';
 import { MarblePool } from '@/pool/MarblePool';
+import { MatchDetector } from '@/gameplay/MatchDetector';
+import { diag } from '@/utils/DiagLogger';
+
+export type MatchResolutionResult = {
+    totalRemoved: number;
+    chainSteps: number;
+    groups: { color: MarbleColor; count: number; position: { x: number; y: number } }[];
+};
 
 export type { LinkedListNode };
 
@@ -68,7 +76,7 @@ export class MarbleChain {
         return best;
     }
 
-    insertMarbleAfter(after: LinkedListNode<Marble>, marble: Marble): { afterIndex: number; shiftedCount: number } {
+    insertMarbleAfter(after: LinkedListNode<Marble>, marble: Marble): { afterIndex: number; shiftedCount: number; node: LinkedListNode<Marble> } {
         const newNode = this.chain.insertAfter(after, marble);
         marble.node = newNode;
 
@@ -80,7 +88,50 @@ export class MarbleChain {
         let cur = newNode.next;
         while (cur) { shifted++; cur = cur.next; }
 
-        return { afterIndex, shiftedCount: shifted };
+        return { afterIndex, shiftedCount: shifted, node: newNode };
+    }
+
+    removeNodes(nodes: LinkedListNode<Marble>[]): void {
+        for (const n of nodes) {
+            this.chain.remove(n);
+            this.pool.release(n.value);
+        }
+        diag.log('chain_removed', {
+            removedCount: nodes.length,
+            newLength: this.chain.length,
+            chainLen: this.chain.length,
+            poolMarbleFreeAfter: this.pool.freeCount,
+        });
+    }
+
+    resolveMatchesFrom(seed: LinkedListNode<Marble>): MatchResolutionResult {
+        const groups: MatchResolutionResult['groups'] = [];
+        let totalRemoved = 0;
+        let chainSteps = 0;
+        let currentSeed: LinkedListNode<Marble> | null = seed;
+
+        while (currentSeed) {
+            const group = MatchDetector.findMatchGroup(currentSeed);
+            if (!group) break;
+
+            const before = group[0].prev;
+            const after  = group[group.length - 1].next;
+            const px = (group[0].value.x + group[group.length - 1].value.x) / 2;
+            const py = (group[0].value.y + group[group.length - 1].value.y) / 2;
+            const color = group[0].value.marbleColor;
+
+            this.removeNodes(group);
+            groups.push({ color, count: group.length, position: { x: px, y: py } });
+            totalRemoved += group.length;
+            chainSteps++;
+
+            currentSeed = (before && after && before.value.marbleColor === after.value.marbleColor)
+                ? before
+                : null;
+        }
+
+        diag.log('resolution_complete', { totalRemoved, chainSteps, groupsCount: groups.length });
+        return { totalRemoved, chainSteps, groups };
     }
 
     get length(): number { return this.chain.length; }
