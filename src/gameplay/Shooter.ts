@@ -11,6 +11,7 @@ export class Shooter {
     private readonly _preview: GameObjects.Arc;
     private readonly _barrel: GameObjects.Graphics;
     private _nextColor: MarbleColor;
+    private _enabled = true;
 
     constructor(scene: Phaser.Scene, x: number, y: number) {
         this.x = x;
@@ -25,6 +26,9 @@ export class Shooter {
         this._barrel.lineBetween(0, 0, BARREL_LENGTH, 0);
         this._barrel.setPosition(x, y);
     }
+
+    get enabled(): boolean { return this._enabled; }
+    setEnabled(v: boolean): void { this._enabled = v; }
 
     getNextColor(): MarbleColor { return this._nextColor; }
 

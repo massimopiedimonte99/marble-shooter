@@ -8,6 +8,8 @@ export enum GameEvent {
     Match = 'match',
     ChainReaction = 'chainReaction',
     ChainEmpty = 'chainEmpty',
+    LevelCompleted = 'levelCompleted',
+    GameOver = 'gameOver',
 }
 
 export interface EventPayloads {
@@ -18,4 +20,6 @@ export interface EventPayloads {
     [GameEvent.Match]: { count: number; color: MarbleColor; position: { x: number; y: number } };
     [GameEvent.ChainReaction]: { steps: number; totalRemoved: number };
     [GameEvent.ChainEmpty]: Record<string, never>;
+    [GameEvent.LevelCompleted]: { chainStepsTotal?: number };
+    [GameEvent.GameOver]: { chainLengthAtDeath: number };
 }

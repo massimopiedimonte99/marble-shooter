@@ -16,8 +16,9 @@ export type MatchResolutionResult = {
 export type { LinkedListNode };
 
 export class MarbleChain {
+    public frozen = false;
     private chain = new LinkedList<Marble>();
-    private headT = 0;
+    private _headT = 0;
     private readonly tSpacing: number;
     private readonly tmpVec = new PhaserMath.Vector2();
     private readonly speed: number;
@@ -40,11 +41,12 @@ export class MarbleChain {
     }
 
     update(_time: number, delta: number): void {
-        this.headT += this.speed * delta;
+        if (this.frozen) return;
+        this._headT += this.speed * delta;
 
         let i = 0;
         this.chain.forEach((marble) => {
-            const t = this.headT - i * this.tSpacing;
+            const t = this._headT - i * this.tSpacing;
             if (t < 0 || t > 1) {
                 marble.setVisible(false);
             } else {
@@ -134,5 +136,15 @@ export class MarbleChain {
         return { totalRemoved, chainSteps, groups };
     }
 
+    get headT(): number { return this._headT; }
+
     get length(): number { return this.chain.length; }
+
+    clearAll(): void {
+        const nodes: LinkedListNode<Marble>[] = [];
+        let cur = this.chain.head;
+        while (cur) { nodes.push(cur); cur = cur.next; }
+        for (const n of nodes) { this.chain.remove(n); this.pool.release(n.value); }
+        this._headT = 0;
+    }
 }

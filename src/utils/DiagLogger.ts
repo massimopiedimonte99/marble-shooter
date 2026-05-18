@@ -3,7 +3,9 @@ export type DiagKind =
     | 'collision' | 'chain_insert'
     | 'match_detected' | 'chain_removed' | 'resolution_complete'
     | 'audio_play'
-    | 'frame_stats';
+    | 'frame_stats'
+    | 'win_condition_met' | 'lose_condition_met'
+    | 'scene_transition' | 'game_reset';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 

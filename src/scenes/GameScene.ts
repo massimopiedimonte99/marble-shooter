@@ -22,15 +22,29 @@ export class GameScene extends BaseScene {
     private projectilePool!: ProjectilePool;
     private resolver!: CollisionResolver;
     private _frameN = 0;
+    private _spawnTimer?: Phaser.Time.TimerEvent;
+    private _ended = false;
+    private _chainEverPopulated = false;
+    private _onMatchHandler = () => {
+        diag.log('frame_stats', {
+            fps: Math.round(this.game.loop.actualFps),
+            chainLen: this.chain.length,
+            projFree: this.projectilePool.freeCount,
+            poolMarbleFree: this.marblePool.freeCount,
+        });
+    };
 
     constructor() {
         super('Game');
     }
 
     create(): void {
+        this._ended = false;
+        this._chainEverPopulated = false;
+        this._frameN = 0;
+
         this.cameras.main.setBackgroundColor('#16213e');
 
-        // S-path: 2 CubicBezier attraverso 1024×768
         const path = new Curves.Path(60, 100);
         path.cubicBezierTo(960, 350, 500, 60, 960, 200);
         path.cubicBezierTo(100, 660, 960, 520, 200, 660);
@@ -45,18 +59,24 @@ export class GameScene extends BaseScene {
         this.shooter = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT - 60);
         this.resolver = new CollisionResolver(this.chain, this.projectilePool);
 
-        // Spawna 30 marble di colori random ogni 200ms
-        this.time.addEvent({
+        diag.log('game_reset', {
+            poolMarbleFreeAfter: this.marblePool.freeCount,
+            poolProjFreeAfter: this.projectilePool.freeCount,
+            chainLen: this.chain.length,
+        });
+
+        this._spawnTimer = this.time.addEvent({
             delay: 200,
             repeat: 29,
             callback: () => {
                 const color = (Math.floor(Math.random() * MARBLE_COLOR_COUNT)) as MarbleColor;
                 this.chain.spawnMarble(color);
+                this._chainEverPopulated = true;
             },
         });
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            // Ignora click nella zona del pulsante "← menu"
+            if (this._ended || !this.shooter.enabled) return;
             if (pointer.y < 40 && pointer.x > GAME_WIDTH - 80) return;
 
             const proj = this.projectilePool.acquire();
@@ -92,14 +112,9 @@ export class GameScene extends BaseScene {
 
         audioManager.bindEvents();
 
-        eventBus.on(GameEvent.Match, () => {
-            diag.log('frame_stats', {
-                fps: Math.round(this.game.loop.actualFps),
-                chainLen: this.chain.length,
-                projFree: this.projectilePool.freeCount,
-                poolMarbleFree: this.marblePool.freeCount,
-            });
-        });
+        eventBus.on(GameEvent.Match, this._onMatchHandler);
+
+        this.events.on('shutdown', this._shutdown, this);
 
         if (import.meta.env.DEV) {
             (window as Window & { __game?: Phaser.Game; __eventBus?: typeof eventBus }).__game = this.game;
@@ -118,10 +133,20 @@ export class GameScene extends BaseScene {
                     for (const color of colors) this.chain.spawnMarble(color);
                 },
             };
+            (window as any).__forceChainState = (colors: MarbleColor[]) => {
+                this.chain.clearAll();
+                for (const color of colors) this.chain.spawnMarble(color);
+                this._chainEverPopulated = colors.length > 0;
+            };
+            (window as any).__disableShooter = (v: boolean = true) => {
+                this.shooter.setEnabled(!v);
+            };
         }
     }
 
     update(_time: number, delta: number): void {
+        if (this._ended) return;
+
         this.chain.update(_time, delta);
         this.shooter.update(this.input.activePointer.x, this.input.activePointer.y);
 
@@ -143,6 +168,22 @@ export class GameScene extends BaseScene {
 
         this.resolver.update();
 
+        if (this._chainEverPopulated && this.chain.length === 0) {
+            diag.log('win_condition_met', { chainLen: 0, t: this.time.now });
+            this._ended = true;
+            eventBus.emit(GameEvent.LevelCompleted, {});
+            this._endRun('Win');
+            return;
+        }
+
+        if (this.chain.headT >= 1.0) {
+            diag.log('lose_condition_met', { headT: this.chain.headT, chainLen: this.chain.length });
+            this._ended = true;
+            eventBus.emit(GameEvent.GameOver, { chainLengthAtDeath: this.chain.length });
+            this._endRun('GameOver');
+            return;
+        }
+
         this._frameN++;
         if (this._frameN % 60 === 0) {
             diag.log('frame_stats', {
@@ -150,6 +191,27 @@ export class GameScene extends BaseScene {
                 chainLen: this.chain.length,
                 projFree: this.projectilePool.freeCount,
             });
+        }
+    }
+
+    private _endRun(target: 'Win' | 'GameOver'): void {
+        this._ended = true;
+        this._spawnTimer?.remove(false);
+        this.chain.frozen = true;
+        this.shooter.setEnabled(false);
+        this.projectilePool.forEachAlive((p) => {
+            if (p.marble) { this.marblePool.release(p.marble); p.marble = null; }
+            this.projectilePool.release(p);
+        });
+        diag.log('scene_transition', { from: 'GameScene', to: `${target}Scene` });
+        this.scene.start(target);
+    }
+
+    private _shutdown(): void {
+        eventBus.off(GameEvent.Match, this._onMatchHandler);
+        if (import.meta.env.DEV) {
+            delete (window as any).__forceChainState;
+            delete (window as any).__disableShooter;
         }
     }
 }
