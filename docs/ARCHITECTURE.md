@@ -60,6 +60,16 @@ src/
 - Tutte le posizioni di gioco sono espresse come frazioni di `GAME_WIDTH`/`GAME_HEIGHT`
   (definiti in `Config.ts`) — mai coordinate assolute nel codice di scena.
 
+## Assets
+- **Marble**: master neutro unico (`AssetKeys.MARBLE_MASTER`) + `setTint(hex)` a runtime.
+  Mai PNG separati per colore. Tint mode MULTIPLY (default Phaser 4) preserva highlights.
+- **Shooter**: rotazione runtime `setRotation(Math.atan2(dy, dx))`, **offset 0**.
+  L'asset ha la canna a 3 o'clock = angolo 0 Phaser → punta direttamente al cursore.
+- **Background**: cover scale centrata (`src/utils/coverBackground.ts`).
+  `scale = Math.max(W/texW, H/texH)` → overcrop orizzontale su canvas portrait.
+- **Key enum**: sempre da `AssetKeys` in `src/constants/AssetKeys.ts`, mai stringhe magiche.
+  Usare `enum` regolare (non `const enum`) per compatibilità esbuild/Vite dev.
+
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente
 2. **State centralizzato**: solo GameState scrive su localStorage, mai scene singole

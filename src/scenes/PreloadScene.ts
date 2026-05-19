@@ -1,5 +1,6 @@
 import { BaseScene } from '@/scenes/BaseScene';
 import { GAME_WIDTH, GAME_HEIGHT } from '@/constants/Config';
+import { AssetKeys } from '@/constants/AssetKeys';
 
 export class PreloadScene extends BaseScene {
     constructor() {
@@ -19,9 +20,12 @@ export class PreloadScene extends BaseScene {
             fill.width = barW * p;
         });
 
-        // TODO Fase 1b: aggiungere asset reali qui
-        // this.load.setPath('assets');
-        // this.load.atlas('marble', 'marble.png', 'marble.json');
+        this.load.setPath('assets');
+        this.load.image(AssetKeys.MARBLE_MASTER,  'marble_master.png');
+        this.load.image(AssetKeys.SHOOTER_MASTER, 'shooter_master.png');
+        this.load.image(AssetKeys.BG_MENU,        'bg_menu.png');
+        this.load.image(AssetKeys.BG_GAMEPLAY,    'bg_gameplay.png');
+        this.load.image(AssetKeys.LOGO,           'logo.png');
     }
 
     create(): void {

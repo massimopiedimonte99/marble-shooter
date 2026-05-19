@@ -1,30 +1,31 @@
 import { GameObjects } from 'phaser';
 import { MARBLE_RADIUS } from '@/constants/Config';
+import { AssetKeys } from '@/constants/AssetKeys';
 import { MarbleColor, MARBLE_COLOR_COUNT, MARBLE_COLOR_HEX } from '@/gameplay/MarbleColor';
 
-const BARREL_LENGTH = 30;
+const SHOOTER_SIZE = 120;
 
 export class Shooter {
     public readonly x: number;
     public readonly y: number;
-    private readonly _body: GameObjects.Arc;
-    private readonly _preview: GameObjects.Arc;
-    private readonly _barrel: GameObjects.Graphics;
+    private readonly _sprite: GameObjects.Sprite;
+    private readonly _preview: GameObjects.Sprite;
     private _nextColor: MarbleColor;
     private _enabled = true;
 
     constructor(scene: Phaser.Scene, x: number, y: number) {
         this.x = x;
         this.y = y;
-        this._body = scene.add.circle(x, y, MARBLE_RADIUS + 6, 0x223355).setStrokeStyle(2, 0x6688aa);
-        this._nextColor = this._rollColor();
-        this._preview = scene.add.circle(x, y, MARBLE_RADIUS, MARBLE_COLOR_HEX[this._nextColor]);
 
-        // Barrel drawn once in local space (0,0)→(BARREL_LENGTH,0); rotated in update()
-        this._barrel = scene.add.graphics();
-        this._barrel.lineStyle(3, 0x6688aa, 1);
-        this._barrel.lineBetween(0, 0, BARREL_LENGTH, 0);
-        this._barrel.setPosition(x, y);
+        // Asset canna a 3 o'clock = angolo 0 Phaser → offset rotazione 0.
+        // setRotation(atan2) mira direttamente al puntatore. Vedi ARCHITECTURE.md § Assets.
+        this._sprite = scene.add.sprite(x, y, AssetKeys.SHOOTER_MASTER)
+            .setDisplaySize(SHOOTER_SIZE, SHOOTER_SIZE);
+
+        this._nextColor = this._rollColor();
+        this._preview = scene.add.sprite(x, y, AssetKeys.MARBLE_MASTER)
+            .setDisplaySize(MARBLE_RADIUS * 2, MARBLE_RADIUS * 2)
+            .setTint(MARBLE_COLOR_HEX[this._nextColor]);
     }
 
     get enabled(): boolean { return this._enabled; }
@@ -35,19 +36,19 @@ export class Shooter {
     consumeAndRoll(): MarbleColor {
         const c = this._nextColor;
         this._nextColor = this._rollColor();
-        this._preview.setFillStyle(MARBLE_COLOR_HEX[this._nextColor]);
+        this._preview.setTint(MARBLE_COLOR_HEX[this._nextColor]);
         return c;
     }
 
     update(pointerX: number, pointerY: number): void {
         const angle = Math.atan2(pointerY - this.y, pointerX - this.x);
-        this._barrel.setRotation(angle);
+        this._sprite.setRotation(angle);
     }
 
     forceNextColor(color: MarbleColor): void {
         if (!import.meta.env.DEV) return;
         this._nextColor = color;
-        this._preview.setFillStyle(MARBLE_COLOR_HEX[color]);
+        this._preview.setTint(MARBLE_COLOR_HEX[color]);
     }
 
     private _rollColor(): MarbleColor {

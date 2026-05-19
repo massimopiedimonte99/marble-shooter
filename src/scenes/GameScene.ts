@@ -4,6 +4,8 @@ import {
     GAME_WIDTH, GAME_HEIGHT,
     PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
 } from '@/constants/Config';
+import { AssetKeys } from '@/constants/AssetKeys';
+import { coverBackground } from '@/utils/coverBackground';
 import { MarbleColor, MARBLE_COLOR_COUNT } from '@/gameplay/MarbleColor';
 import { MarblePool } from '@/pool/MarblePool';
 import { MarbleChain } from '@/gameplay/MarbleChain';
@@ -43,7 +45,7 @@ export class GameScene extends BaseScene {
         this._chainEverPopulated = false;
         this._frameN = 0;
 
-        this.cameras.main.setBackgroundColor('#16213e');
+        coverBackground(this, AssetKeys.BG_GAMEPLAY);
 
         const W = GAME_WIDTH, H = GAME_HEIGHT;
         const path = new Curves.Path(0.06 * W, 0.13 * H);

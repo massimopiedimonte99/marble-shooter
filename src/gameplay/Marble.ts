@@ -1,19 +1,21 @@
 import { GameObjects } from 'phaser';
 import { MARBLE_RADIUS } from '@/constants/Config';
+import { AssetKeys } from '@/constants/AssetKeys';
 import { MarbleColor, MARBLE_COLOR_HEX } from '@/gameplay/MarbleColor';
 import type { LinkedListNode } from '@/utils/LinkedList';
 
-export class Marble extends GameObjects.Arc {
+export class Marble extends GameObjects.Sprite {
     public marbleColor: MarbleColor = MarbleColor.RED;
     public node: LinkedListNode<Marble> | null = null;
 
     constructor(scene: Phaser.Scene) {
-        super(scene, 0, 0, MARBLE_RADIUS, 0, 360, false, MARBLE_COLOR_HEX[MarbleColor.RED]);
+        super(scene, 0, 0, AssetKeys.MARBLE_MASTER);
+        this.setDisplaySize(MARBLE_RADIUS * 2, MARBLE_RADIUS * 2);
     }
 
     setColor(color: MarbleColor): this {
         this.marbleColor = color;
-        this.setFillStyle(MARBLE_COLOR_HEX[color]);
+        this.setTint(MARBLE_COLOR_HEX[color]);
         return this;
     }
 

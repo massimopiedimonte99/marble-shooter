@@ -1,2 +1,7 @@
-// popolato in Fase 1b quando arrivano asset reali
-export const enum AssetKeys {}
+export enum AssetKeys {
+    MARBLE_MASTER  = 'marble_master',
+    SHOOTER_MASTER = 'shooter_master',
+    BG_MENU        = 'bg_menu',
+    BG_GAMEPLAY    = 'bg_gameplay',
+    LOGO           = 'logo',
+}
