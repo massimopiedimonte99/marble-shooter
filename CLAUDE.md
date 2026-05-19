@@ -1,9 +1,10 @@
-# Marble Shooter — Project Context
+# Marbly Pop! — Project Context
 
 ## Stack
 - Phaser 3.80+ + TypeScript 5 + Vite 5
 - Target: HTML5 web (CrazyGames primario, Poki/GameDistribution successivi)
 - Build size budget: < 4 MB gzipped, < 8 MB raw
+- Visual style: bold flat 2D cartoon, Gumball/Toon Blast school, no outlines
 
 ## Conventions
 - Tutti i path usano alias `@/` → `src/`
@@ -26,6 +27,8 @@
 - `docs/GDD.md` — game design di riferimento
 - `docs/AUDIO.md` — mappa eventi audio (single source of truth)
 - `docs/SDK_NOTES.md` — quirk specifici per piattaforma di pubblicazione
+- `docs/STYLE_GUIDE.md` — visual identity (palette, anchor prompts, reference asset)
+- `docs/ASSETS.md` — inventario asset, dimensioni target, naming convention
 
 ## Don't
 - Niente lodash/underscore — usa Phaser utilities o vanilla TS

@@ -45,9 +45,11 @@ export class GameScene extends BaseScene {
 
         this.cameras.main.setBackgroundColor('#16213e');
 
-        const path = new Curves.Path(60, 100);
-        path.cubicBezierTo(960, 350, 500, 60, 960, 200);
-        path.cubicBezierTo(100, 660, 960, 520, 200, 660);
+        const W = GAME_WIDTH, H = GAME_HEIGHT;
+        const path = new Curves.Path(0.06 * W, 0.13 * H);
+        path.cubicBezierTo(0.94 * W, 0.30 * H, 0.49 * W, 0.06 * H, 0.94 * W, 0.20 * H);
+        path.cubicBezierTo(0.10 * W, 0.55 * H, 0.94 * W, 0.46 * H, 0.20 * W, 0.55 * H);
+        path.cubicBezierTo(0.85 * W, 0.78 * H, 0.10 * W, 0.66 * H, 0.85 * W, 0.70 * H);
 
         const gfx = this.add.graphics();
         gfx.lineStyle(3, 0x445566, 0.7);
@@ -56,7 +58,7 @@ export class GameScene extends BaseScene {
         this.marblePool = new MarblePool(this);
         this.chain = new MarbleChain(path, this.marblePool);
         this.projectilePool = new ProjectilePool();
-        this.shooter = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT - 60);
+        this.shooter = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT - 200);
         this.resolver = new CollisionResolver(this.chain, this.projectilePool);
 
         diag.log('game_reset', {

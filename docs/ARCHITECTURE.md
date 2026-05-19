@@ -53,6 +53,13 @@ src/
 ├── AssetKeys.ts               # enum di tutte le texture/sound keys
 └── Config.ts                  # numeri "magici" centralizzati
 
+## Layout / Canvas
+- **Logical resolution**: 720×1280 portrait (9:16, mobile-first).
+- **Scale mode**: `Scale.FIT` + `CENTER_BOTH` (vedi `main.ts`). Su desktop vengono
+  accettate barre laterali.
+- Tutte le posizioni di gioco sono espresse come frazioni di `GAME_WIDTH`/`GAME_HEIGHT`
+  (definiti in `Config.ts`) — mai coordinate assolute nel codice di scena.
+
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente
 2. **State centralizzato**: solo GameState scrive su localStorage, mai scene singole
