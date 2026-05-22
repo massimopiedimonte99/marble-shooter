@@ -82,8 +82,13 @@ async function main() {
     const row = Math.floor(i / cols);
     const outPath = path.join(outDir, `${names[i]}.png`);
 
-    await sharp(input)
+    // Two-step pipeline: sharp chains extract+trim incorrectly (trim uses original-image
+    // coordinates, causing "bad extract area" for all tiles except the top-left).
+    const tileBuffer = await sharp(input)
       .extract({ left: col * tileW, top: row * tileH, width: tileW, height: tileH })
+      .toBuffer();
+
+    await sharp(tileBuffer)
       .trim({ background: transparent, threshold: 10 })
       .resize(inner, inner, { fit: 'inside', withoutEnlargement: false })
       .extend({ top: padding, bottom: padding, left: padding, right: padding, background: transparent })
