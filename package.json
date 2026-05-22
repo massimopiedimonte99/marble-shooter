@@ -17,9 +17,13 @@
     "dev": "node log.js dev & vite --config vite/config.dev.mjs",
     "build": "node log.js build & vite build --config vite/config.prod.mjs",
     "dev-nolog": "vite --config vite/config.dev.mjs",
-    "build-nolog": "vite build --config vite/config.prod.mjs"
+    "build-nolog": "vite build --config vite/config.prod.mjs",
+    "asset:split": "tsx scripts/asset-split.ts"
   },
   "devDependencies": {
+    "@types/sharp": "^0.32.0",
+    "sharp": "^0.34.5",
+    "tsx": "^4.22.3",
     "typescript": "~5.7.2",
     "vite": "^6.3.1"
   },
