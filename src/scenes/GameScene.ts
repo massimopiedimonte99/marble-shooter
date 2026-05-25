@@ -39,6 +39,8 @@ export class GameScene extends BaseScene {
     private _freezeTimer?: Phaser.Time.TimerEvent;
     private _burstEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
 
+    private _ignoreNextPointerUp = true;
+
     private _onMatchHandler = (p: EventPayloads[GameEvent.Match]) => {
         this.chain.frozen = true;
         this._freezeTimer?.remove(false);
@@ -75,6 +77,7 @@ export class GameScene extends BaseScene {
     }
 
     create(): void {
+        this._ignoreNextPointerUp = true;
         this._ended = false;
         this._chainEverPopulated = false;
         this._frameN = 0;
@@ -160,7 +163,13 @@ export class GameScene extends BaseScene {
             },
         });
 
-        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+            // Evitare che cliccando su "Play" nel menu venga sparata una marble a inizio game
+            if (this._ignoreNextPointerUp) {
+                this._ignoreNextPointerUp = false;
+                return;
+            }
+
             if (this._ended || !this.shooter.enabled) return;
             if (pointer.y < 90 || pointer.y > 1100) return;
             const adx = pointer.x - this.shooter.x;
@@ -260,8 +269,7 @@ export class GameScene extends BaseScene {
         if (this._ended) return;
 
         this.chain.update(_time, delta);
-        this.shooter.update(this.input.activePointer.x, this.input.activePointer.y);
-
+this.shooter.update(this.input.activePointer);
         this.projectilePool.forEachAlive((p) => {
             const m = p.marble;
             if (!m) return;
