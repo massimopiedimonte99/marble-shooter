@@ -21,7 +21,7 @@
 
 | File | Dim. native | Dim. display runtime | AssetKey | Scena / Placement |
 |------|-------------|----------------------|----------|-------------------|
-| `button_master.png` | 1024×1024 | variabile (via `createButton` opts) | `BUTTON_MASTER` | Tutti i bottoni primari (PLAY, PLAY AGAIN, TRY AGAIN, DOUBLE REWARDS). |
+| `button_master.png` | 1024×1024 | variabile: `setScale(targetWidth/835)` | `BUTTON_MASTER` | Tutti i bottoni primari (PLAY, PLAY AGAIN, TRY AGAIN). Pill visibile 835×360 nel PNG; usare `createButton` helper che mantiene aspect ratio. NON usare setDisplaySize. |
 | `icon_pause.png` | 128×128 | 64×64 px | `ICON_PAUSE` | GameScene HUD — top-right (GAME_WIDTH-56, 56). Torna al Menu. |
 | `icon_settings.png` | 128×128 | 64×64 px | `ICON_SETTINGS` | MenuScene HUD — top-right (GAME_WIDTH-56, 56). Placeholder silenzioso. |
 | `icon_sound_on.png` | 128×128 | 64×64 px | `ICON_SOUND_ON` | MenuScene HUD — top-left (56, 56). Toggle locale. |
@@ -33,8 +33,8 @@
 
 | File | Dim. native | Dim. display runtime | AssetKey | Scena / Placement |
 |------|-------------|----------------------|----------|-------------------|
-| `panel_victory.png` | 1024×1024 | 620×880 px | `PANEL_VICTORY` | WinScene — centrato (cx, cy). |
-| `panel_lose.png` | 1024×1024 | 620×880 px | `PANEL_LOSE` | GameOverScene — centrato (cx, cy). |
+| `panel_victory.png` | 1024×1024 | **620×620 px** (quadrato) | `PANEL_VICTORY` | WinScene — centrato (cx, cy). Cream area utile: offset y +53 px dal centro (creamY = cy+53). Cartiglio drape: offset y -201 px. |
+| `panel_lose.png` | 1024×1024 | **620×620 px** (quadrato) | `PANEL_LOSE` | GameOverScene — centrato (cx, cy). Stessi offset cream del panel_victory. |
 | `icon_powerup_bomb.png` | 127×128 | 80×80 px | `ICON_POWERUP_BOMB` | GameScene HUD — bottom, px=90. Placeholder silenzioso. |
 | `icon_powerup_colorblast.png` | 127×128 | 80×80 px | `ICON_POWERUP_COLORBLAST` | GameScene HUD — bottom, px=190. Placeholder silenzioso. |
 | `icon_powerup_freeze.png` | 126×128 | 80×80 px | `ICON_POWERUP_FREEZE` | GameScene HUD — bottom, px=290. Placeholder silenzioso. |
@@ -76,13 +76,18 @@ Saranno wirati in fasi successive:
 
 - [ ] **bg_menu.png** e **bg_gameplay.png**: rigenerare a 1024×1820 (9:16 nativo) in
   AI Studio per eliminare l'overcrop e riempire la canvas portrait senza stretch.
-- [ ] **marble_master.png** + **shooter_master.png** + **logo.png**: rimuovere
-  watermark sparkle (⬡ 4 punte, angolo basso-dx). Tool: Photopea Healing Brush.
+- [ ] **marble_master.png** + **shooter_master.png** + **logo.png** + **button_master.png**
+  + **panel_victory.png** + **panel_lose.png**: rimuovere watermark sparkle (⬡ 4 punte,
+  angolo basso-dx). Tool: Photopea Healing Brush.
 - [ ] **chest_closed.png**: dimensioni native asimmetriche (512×280); valutare rigenerazione
   a 512×512 per evitare distorsioni a display size quadrata.
+- [ ] **icon_sound_on.png** / **icon_sound_off.png**: rigenerazione in Photopea per allinearli
+  allo stile icon_pause / icon_settings (stesso peso visivo).
 - [ ] `logo_small.png` 256×256: variante compact per future HUD/splash.
 - [ ] Verificare tint resa su device mobile fisico (colori leggermente più saturi
   in MULTIPLY su schermo AMOLED rispetto al monitor desktop).
+- [ ] Valutare MARBLE_RADIUS 16→18-20 con ribilanciamento COLLISION_THRESHOLD e
+  MARBLE_SPACING per migliorare leggibilità marmi su schermo fisico (Fase 2).
 
 ## Cover scale formula
 ```ts

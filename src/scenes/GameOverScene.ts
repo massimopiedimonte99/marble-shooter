@@ -12,22 +12,25 @@ export class GameOverScene extends BaseScene {
     create(): void {
         const cx = GAME_WIDTH / 2;
         const cy = GAME_HEIGHT / 2;
+        const PANEL_DISPLAY = 620;
+        const creamY = cy + 53;
 
         coverBackground(this, AssetKeys.BG_GAMEPLAY);
         this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.5);
 
-        this.add.image(cx, cy, AssetKeys.PANEL_LOSE).setDisplaySize(620, 880);
+        this.add.image(cx, cy, AssetKeys.PANEL_LOSE)
+            .setDisplaySize(PANEL_DISPLAY, PANEL_DISPLAY);
 
-        this.add.text(cx, cy - 240, 'Game Over', {
+        this.add.text(cx, creamY - 130, 'Game Over', {
             fontFamily: 'Arial Black',
-            fontSize: '52px',
-            color: '#ffffff',
-            stroke: '#3a1a0e',
-            strokeThickness: 6,
+            fontSize: '42px',
+            color: '#3a1a0e',
+            stroke: '#f4e5c2',
+            strokeThickness: 2,
         }).setOrigin(0.5);
 
-        createButton(this, cx, cy + 200, 'TRY AGAIN',
+        createButton(this, cx, creamY + 80, 'TRY AGAIN',
             () => this.scene.start('Game'),
-            { width: 320, height: 90, fontSize: '30px', diagId: 'gameover_retry' });
+            { width: 260, diagId: 'gameover_retry' });
     }
 }

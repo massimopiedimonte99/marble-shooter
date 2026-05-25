@@ -22,7 +22,7 @@ export class MenuScene extends BaseScene {
         createButton(this, cx, GAME_HEIGHT * 0.55, 'PLAY', () => {
             this.eventBus.emit(GameEvent.MenuPlayPressed);
             this.scene.start('Game');
-        }, { width: 280, height: 90, fontSize: '32px', diagId: 'menu_play' });
+        }, { width: 300, diagId: 'menu_play' });
 
         // Sound toggle (stato volatile locale)
         let soundOn = true;

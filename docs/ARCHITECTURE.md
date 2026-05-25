@@ -70,16 +70,29 @@ src/
 - **Key enum**: sempre da `AssetKeys` in `src/constants/AssetKeys.ts`, mai stringhe magiche.
   Usare `enum` regolare (non `const enum`) per compatibilità esbuild/Vite dev.
 - **createButton** (`src/utils/createButton.ts`): helper per pattern button_master + label
-  centrata. Container Phaser con bg Image + Text; hover alpha 0.85, click → `diag.log('button_pressed')` + callback. Nessun tween.
+  centrata. PNG `button_master` 1024×1024 con pill visibile 835×360: usa `setScale(width/835)`
+  uniforme (NON setDisplaySize) per preservare aspect ratio. `height` derivato internamente
+  come `width * (360/835)`; non è un parametro dell'helper. Container Phaser con bg Image +
+  Text; hover alpha 0.85, click → `diag.log('button_pressed')` + callback. Nessun tween.
+- **Panel layout**: `PANEL_VICTORY` / `PANEL_LOSE` sono PNG 1024×1024 **quadrati**.
+  Displayare sempre come 620×620. La cream area utile è centrata a offset y **+53 px** dal
+  centro del panel (a display 620). Cartiglio drape: offset y **-201 px**. Posizionare tutto il
+  content rispetto a `creamY = panelY + 53`.
 - **HUD inline nelle scene**: icone e pulsanti HUD creati direttamente in `create()` di ogni
   scena. Nessuna cartella `src/ui/` in questa fase; potrà essere introdotta in Fase 2 se la
   complessità aumenta.
 - **Sound toggle**: stato volatile locale a MenuScene (variabile `soundOn`). Persistenza
   rinviata a Fase 2 → `GameState` / `SaveManager`.
 - **Bottoni placeholder**: solo `diag.log('button_pressed', { id })`, nessun event emit,
-  nessun handler funzionale (power-up, settings, double rewards).
-- **Drain hole**: visual cue all'endpoint del path in GameScene, `setDepth(-5)` per restare
-  sotto la catena marble.
+  nessun handler funzionale (power-up, settings).
+- **icon_pause**: no-op silenzioso in questa fase (solo `diag.log`). Diventerà overlay
+  PauseScene in Fase 2.
+- **Drain hole**: visual cue all'endpoint del path in GameScene (80×80 px), `setDepth(-5)`
+  per restare sotto la catena marble. Endpoint corrente a (0.50W, 0.72H) = centro basso.
+- **Path GameScene**: coefficienti W/H normalizzati. Endpoint a (0.50W, 0.72H). Linea path
+  leggera: `lineStyle(2, 0x445566, 0.35)`.
+- **TODO Fase 2**: valutare MARBLE_RADIUS 16→18-20 con ribilanciamento COLLISION_THRESHOLD
+  e MARBLE_SPACING per migliorare leggibilità marmi su schermo fisico.
 
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente

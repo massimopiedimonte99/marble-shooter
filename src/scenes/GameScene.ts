@@ -45,27 +45,34 @@ export class GameScene extends BaseScene {
         this._chainEverPopulated = false;
         this._frameN = 0;
 
+        const POWERUP_SIZE = 80;
+        const POWERUP_SPACING = 100;
+        const POWERUP_COUNT = 4;
+        const POWERUP_Y = 1170;
+        const totalSpan = (POWERUP_COUNT - 1) * POWERUP_SPACING;
+        const startX = (GAME_WIDTH - totalSpan) / 2;
+
         coverBackground(this, AssetKeys.BG_GAMEPLAY);
 
         const W = GAME_WIDTH, H = GAME_HEIGHT;
-        const path = new Curves.Path(0.06 * W, 0.13 * H);
-        path.cubicBezierTo(0.94 * W, 0.30 * H, 0.49 * W, 0.06 * H, 0.94 * W, 0.20 * H);
-        path.cubicBezierTo(0.10 * W, 0.55 * H, 0.94 * W, 0.46 * H, 0.20 * W, 0.55 * H);
-        path.cubicBezierTo(0.85 * W, 0.78 * H, 0.10 * W, 0.66 * H, 0.85 * W, 0.70 * H);
+        const path = new Curves.Path(0.14 * W, 0.18 * H);
+        path.cubicBezierTo(0.88 * W, 0.34 * H, 0.55 * W, 0.12 * H, 0.92 * W, 0.22 * H);
+        path.cubicBezierTo(0.10 * W, 0.52 * H, 0.92 * W, 0.46 * H, 0.08 * W, 0.42 * H);
+        path.cubicBezierTo(0.50 * W, 0.72 * H, 0.10 * W, 0.70 * H, 0.85 * W, 0.60 * H);
 
         const gfx = this.add.graphics();
-        gfx.lineStyle(3, 0x445566, 0.7);
+        gfx.lineStyle(2, 0x445566, 0.35);
         path.draw(gfx, 128);
 
         const endPt = path.getEndPoint();
         this.add.image(endPt.x, endPt.y, AssetKeys.DRAIN_HOLE)
-            .setDisplaySize(120, 120)
+            .setDisplaySize(80, 80)
             .setDepth(-5);
 
         this.marblePool = new MarblePool(this);
         this.chain = new MarbleChain(path, this.marblePool);
         this.projectilePool = new ProjectilePool();
-        this.shooter = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT - 200);
+        this.shooter = new Shooter(this, GAME_WIDTH / 2, 1030);
         this.resolver = new CollisionResolver(this.chain, this.projectilePool);
 
         diag.log('game_reset', {
@@ -86,8 +93,10 @@ export class GameScene extends BaseScene {
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (this._ended || !this.shooter.enabled) return;
-            if (pointer.x > GAME_WIDTH - 88 && pointer.y < 88) return;
-            if (pointer.y > GAME_HEIGHT - 120 && pointer.x < 480) return;
+            if (pointer.y < 88 && pointer.x > GAME_WIDTH - 88) return;
+            if (pointer.y > POWERUP_Y - POWERUP_SIZE / 2 - 10 &&
+                pointer.x > startX - POWERUP_SIZE / 2 &&
+                pointer.x < startX + totalSpan + POWERUP_SIZE / 2) return;
 
             const proj = this.projectilePool.acquire();
             if (!proj) return;
@@ -107,12 +116,8 @@ export class GameScene extends BaseScene {
         this.add.image(GAME_WIDTH - 56, 56, AssetKeys.ICON_PAUSE)
             .setDisplaySize(64, 64)
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
-                diag.log('button_pressed', { id: 'pause' });
-                this.scene.start('Menu');
-            });
+            .on('pointerdown', () => diag.log('button_pressed', { id: 'pause' }));
 
-        const powerUpY = GAME_HEIGHT - 80;
         const powerUps: AssetKeys[] = [
             AssetKeys.ICON_POWERUP_BOMB,
             AssetKeys.ICON_POWERUP_COLORBLAST,
@@ -120,9 +125,9 @@ export class GameScene extends BaseScene {
             AssetKeys.ICON_POWERUP_SLINGSHOT,
         ];
         powerUps.forEach((key, i) => {
-            const px = 90 + i * 100;
-            this.add.image(px, powerUpY, key)
-                .setDisplaySize(80, 80)
+            const px = startX + i * POWERUP_SPACING;
+            this.add.image(px, POWERUP_Y, key)
+                .setDisplaySize(POWERUP_SIZE, POWERUP_SIZE)
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', () => diag.log('button_pressed', { id: key }));
         });
