@@ -89,11 +89,13 @@ export class GameScene extends BaseScene {
 
         coverBackground(this, AssetKeys.BG_GAMEPLAY);
 
-        const W = GAME_WIDTH, H = GAME_HEIGHT;
-        const path = new Curves.Path(0.14 * W, 0.18 * H);
-        path.cubicBezierTo(0.88 * W, 0.32 * H, 0.55 * W, 0.10 * H, 0.92 * W, 0.20 * H);
-        path.cubicBezierTo(0.10 * W, 0.48 * H, 0.92 * W, 0.42 * H, 0.08 * W, 0.38 * H);
-        path.cubicBezierTo(0.50 * W, 0.66 * H, 0.10 * W, 0.62 * H, 0.85 * W, 0.54 * H);
+        // WRAP-CCW: enters top-right, sweeps over top, down left side, across bottom → drain bottom-right.
+        // Coords absolute (validated: min 270px from cannon at center, 0 points within 200px).
+        const path = new Curves.Path(630, 200);
+        path.cubicBezierTo(100, 180,  480, 60,   240, 60);    // sweep over the top → top-left
+        path.cubicBezierTo(90,  660,  40,  320,  40,  520);   // down the left side
+        path.cubicBezierTo(360, 1030, 120, 920,  220, 1010);  // across the bottom
+        path.cubicBezierTo(620, 1040, 480, 1050, 560, 1045);  // → drain bottom-right
 
         if (import.meta.env.DEV) {
             const gfx = this.add.graphics();
@@ -109,7 +111,7 @@ export class GameScene extends BaseScene {
         this.marblePool = new MarblePool(this);
         this.chain = new MarbleChain(path, this.marblePool);
         this.projectilePool = new ProjectilePool();
-        this.shooter = new Shooter(this, GAME_WIDTH / 2, 990);
+        this.shooter = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT / 2);
         this.resolver = new CollisionResolver(this.chain, this.projectilePool);
 
         const SCORE_Y = 50;
@@ -152,6 +154,9 @@ export class GameScene extends BaseScene {
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (this._ended || !this.shooter.enabled) return;
             if (pointer.y < 90 || pointer.y > 1100) return;
+            const adx = pointer.x - this.shooter.x;
+            const ady = pointer.y - this.shooter.y;
+            if (Math.hypot(adx, ady) < 50) return;
 
             const proj = this.projectilePool.acquire();
             if (!proj) return;

@@ -74,6 +74,10 @@ Saranno wirati in fasi successive:
 
 ## TODO — rigenerazione asset
 
+- [ ] **particle_circle.png**: asset generato con **sfondo nero** (non trasparente — errore
+  prompt originale). Workaround at-runtime via `blendMode:'ADD'` nell'emitter (additive scarta
+  il nero, somma luce). Cleanup permanente: Photopea → Select > Color Range > Black > Delete.
+  Non urgente (workaround funzionante).
 - [ ] **bg_menu.png** e **bg_gameplay.png**: rigenerare a 1024×1820 (9:16 nativo) in
   AI Studio per eliminare l'overcrop e riempire la canvas portrait senza stretch.
 - [ ] **marble_master.png** + **shooter_master.png** + **logo.png** + **button_master.png**

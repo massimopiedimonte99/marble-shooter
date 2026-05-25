@@ -91,8 +91,14 @@ src/
   PauseScene in Fase 2.
 - **Drain hole**: visual cue all'endpoint del path in GameScene (70×70 px), `setDepth(-5)`
   per restare sotto la catena marble. Endpoint corrente a (0.50W, 0.66H).
-- **Path GameScene**: coefficienti W/H normalizzati. Endpoint a (0.50W, 0.66H). Linea path
-  `lineStyle(2, 0x445566, 0.25)` visibile **solo in DEV** (produzione pulita).
+- **Cannone al centro**: `Shooter` a `(GAME_WIDTH/2, GAME_HEIGHT/2)=(360,640)`. Pattern
+  marble-shooter classico (Marble Blast Saga / Zumbla): ruota 360° via `atan2(dy,dx)`.
+  Guard pointerdown: ignora tap entro **50px** dal cannone (atan2 instabile su pointer≈shooter).
+- **Path GameScene WRAP-CCW**: path con coordinate assolute, non frazioni W/H (validate
+  numericamente). Entra top-right `(630,200)`, gira sopra il top, scende sul lato sinistro,
+  attraversa il bottom, drain bottom-right `(620,1040)`. Min distanza curva-cannone **270px**
+  (0 punti entro 200px — validato campionando la curva, non solo gli anchor). Gap 60px sopra
+  il power-up shelf. Linea guida `lineStyle(2,0x445566,0.25)` solo **DEV**.
 - **Config tuning** (da fix manuale): `MARBLE_RADIUS 22` (era 16 — dettaglio glossy
   illeggibile a 32px); `COLLISION_THRESHOLD 44` via `MARBLE_RADIUS*2` automatico.
   `MARBLE_SPACING 43 ≈ 2*radius-1` → touching, feel Zuma-classic.
@@ -110,7 +116,8 @@ src/
   (`setDisplaySize 1.3×→1×`, Back.easeOut 160 ms, `onComplete` reset a `D=MARBLE_RADIUS*2` —
   copre il pool che non resetta lo scale; `killTweensOf` evita tween orfani su re-acquire).
 - **Pooling particelle**: nessun `ParticlePool` custom; l'emitter Phaser fa da pool
-  (zero alloc/frame) → soddisfa mandato CLAUDE.md.
+  (zero alloc/frame) → soddisfa mandato CLAUDE.md. `blendMode:'ADD'` workaround per
+  `particle_circle.png` che ha sfondo nero invece di alpha trasparente.
 - **Stack note**: Phaser **4.0.0** installato (i doc dicevano 3.80+).
 
 ## Principi
