@@ -18,6 +18,7 @@ import { eventBus } from '@/events/EventBus';
 import { GameEvent } from '@/events/EventTypes';
 import type { EventPayloads } from '@/events/EventTypes';
 import { audioManager } from '@/audio/AudioManager';
+import { Math as PhaserMath } from 'phaser';
 
 const CHAIN_FREEZE_MS = 500;
 const COIN_REWARD: Record<number, number> = { 3: 10, 4: 50, 5: 100, 6: 200 };
@@ -95,20 +96,61 @@ export class GameScene extends BaseScene {
         // SPIRAL-v6r: outer oval CCW then inner loop → drain below cannon.
         // Tuned for MARBLE_RADIUS=40: right CPs at x=675 (675+40=715<720), top CPs at y=60
         // (marble top at y=20), bottom CPs at y=1040 (marble bottom at y=1080 < shelf at 1100).
-        const path = new Curves.Path(80, 150);
-        path.cubicBezierTo(630, 150,  300,  60,  570,  60);   // outer top
-        path.cubicBezierTo(640,1000,  675, 300,  675, 760);   // outer right
-        path.cubicBezierTo( 80,1010,  630,1040,  80,1040);    // outer bottom
-        path.cubicBezierTo( 90, 340,   70, 820,  70, 540);    // outer left
-        path.cubicBezierTo(480, 280,  110, 140,  340, 210);   // inner top
-        path.cubicBezierTo(490, 800,  560, 420,  560, 640);   // inner right
-        path.cubicBezierTo(260, 840,  490, 960,  340, 960);   // inner bottom
-        path.cubicBezierTo(360, 760,  220, 700,  330, 800);   // drain
+        const path = new Curves.Path(-20 ,150);
+
+        path.cubicBezierTo(630, 150, 300,  60, 570,  60);
+        path.cubicBezierTo(640,1000, 675, 300, 675, 760);
+        path.cubicBezierTo( 80,1010, 630,1040,  80,1040);
+        path.cubicBezierTo( 90, 340,  70, 820,  70, 540);
+
+        path.cubicBezierTo(480, 280, 110, 140, 340, 210);
+        path.cubicBezierTo(490, 800, 560, 420, 560, 640);
+        path.cubicBezierTo(260, 840, 490, 960, 340, 960);
+        path.cubicBezierTo(360, 760, 220, 700, 330, 800);
 
         if (import.meta.env.DEV) {
             const gfx = this.add.graphics();
-            gfx.lineStyle(2, 0x445566, 0.25);
-            path.draw(gfx, 128);
+
+            const points = path.getPoints(1024);
+
+            const thickness = 30;
+
+            const left: Phaser.Math.Vector2[] = [];
+            const right: Phaser.Math.Vector2[] = [];
+
+            for (let i = 0; i < points.length; i++) {
+                const p = points[i];
+
+                const prev = points[i - 1] || points[i];
+                const next = points[i + 1] || points[i];
+
+                const dx = next.x - prev.x;
+                const dy = next.y - prev.y;
+
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const nx = -dy / len;
+                const ny = dx / len;
+
+                left.push(new PhaserMath.Vector2(p.x + nx * thickness, p.y + ny * thickness));
+                right.push(new PhaserMath.Vector2(p.x - nx * thickness, p.y - ny * thickness));
+            }
+
+            // disegna shape unica
+            gfx.fillStyle(0x445566, 0.45);
+            gfx.beginPath();
+
+            gfx.moveTo(left[0].x, left[0].y);
+
+            for (let i = 1; i < left.length; i++) {
+                gfx.lineTo(left[i].x, left[i].y);
+            }
+
+            for (let i = right.length - 1; i >= 0; i--) {
+                gfx.lineTo(right[i].x, right[i].y);
+            }
+
+            gfx.closePath();
+            gfx.fillPath();
         }
 
         const endPt = path.getEndPoint();
