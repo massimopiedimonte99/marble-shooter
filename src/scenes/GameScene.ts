@@ -284,7 +284,7 @@ export class GameScene extends BaseScene {
             diag.log('win_condition_met', { chainLen: 0, t: this.time.now });
             this._ended = true;
             eventBus.emit(GameEvent.LevelCompleted, {});
-            this._endRun('Win');
+            this._endRun('GameOver');
             return;
         }
 
@@ -324,9 +324,8 @@ export class GameScene extends BaseScene {
     private _spawnFloatingScore(amount: number, x: number, y: number): void {
         const txt = this.add.text(x, y, `+${amount}`, {
             fontFamily: 'Arial Black',
-            fontSize: '34px',
+            fontSize: '40px',
             color: '#ffe066',
-            stroke: '#3a2a00',
             strokeThickness: 5,
         }).setOrigin(0.5).setDepth(20);
         this.tweens.add({

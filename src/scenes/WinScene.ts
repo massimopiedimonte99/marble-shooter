@@ -33,18 +33,18 @@ export class WinScene extends BaseScene {
         this.add.image(cx,       creamY - 85, AssetKeys.STAR_FILLED).setDisplaySize(80, 80);
         this.add.image(cx + 90, creamY - 75, AssetKeys.STAR_EMPTY).setDisplaySize(70, 70);
 
-        this.add.image(cx, creamY + 20, AssetKeys.CHEST_CLOSED).setDisplaySize(180, 100);
+        this.add.image(cx, creamY + 20, AssetKeys.CHEST_CLOSED).setDisplaySize(240, 140);
 
-        this.add.image(cx - 70, creamY + 100, AssetKeys.COIN).setDisplaySize(40, 40);
-        this.add.text(cx - 45, creamY + 100, '+50', {
-            fontFamily: 'Arial Black', fontSize: '22px', color: '#3a1a0e',
+        this.add.image(cx - 90, creamY + 110, AssetKeys.COIN).setDisplaySize(80, 80);
+        this.add.text(cx - 65, creamY + 110, '+50', {
+            fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
         }).setOrigin(0, 0.5);
-        this.add.image(cx + 20, creamY + 100, AssetKeys.GEM).setDisplaySize(40, 40);
-        this.add.text(cx + 45, creamY + 100, '+5', {
-            fontFamily: 'Arial Black', fontSize: '22px', color: '#3a1a0e',
+        this.add.image(cx + 50, creamY + 110, AssetKeys.GEM).setDisplaySize(80, 80);
+        this.add.text(cx + 75, creamY + 110, '+5', {
+            fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
         }).setOrigin(0, 0.5);
 
-        createButton(this, cx, creamY + 175, 'PLAY AGAIN',
+        createButton(this, cx, creamY + 300, 'PLAY AGAIN',
             () => this.scene.start('Game'),
             { width: 320, fontSize: '32px', diagId: 'win_play_again' });
     }

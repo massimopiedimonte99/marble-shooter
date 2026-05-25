@@ -29,7 +29,21 @@ export class GameOverScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5);
 
-        createButton(this, cx, creamY + 80, 'TRY AGAIN',
+        /***
+         * TODO: 
+         * 
+         * Inserire pannello "Guarda AD" che riporta la catena indietro di qualche unità 
+         * se l'utente vede l'AD (richiede implementazione SDK ma la UI si può cominciare a mettere)
+        **/
+        this.add.text(cx, creamY + 10, '[ Qui ci va un pannello ADS ]', {
+            fontFamily: 'Arial Black',
+            fontSize: '22px',
+            color: '#3a1a0e',
+            stroke: '#f4e5c2',
+            strokeThickness: 2,
+        }).setOrigin(0.5);
+
+        createButton(this, cx, creamY + 300, 'TRY AGAIN',
             () => this.scene.start('Game'),
             { width: 320, fontSize: '32px', diagId: 'gameover_retry' });
     }
