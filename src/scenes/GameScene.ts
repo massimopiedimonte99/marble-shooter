@@ -41,16 +41,11 @@ export class GameScene extends BaseScene {
 
     private _onMatchHandler = (p: EventPayloads[GameEvent.Match]) => {
         this.chain.frozen = true;
-        this.chain.speedMultiplier = 1.0;
         this._freezeTimer?.remove(false);
         this._freezeTimer = this.time.delayedCall(CHAIN_FREEZE_MS, () => {
             this._freezeTimer = undefined;
             if (this._ended) return;
             this.chain.frozen = false;
-            this.chain.speedMultiplier = -0.6;
-            this.time.delayedCall(300, () => {
-                if (!this._ended) this.chain.speedMultiplier = 1.0;
-            });
             diag.log('chain_freeze_end', {});
         });
         diag.log('chain_freeze_start', { ms: CHAIN_FREEZE_MS, count: p.count });
@@ -357,7 +352,6 @@ export class GameScene extends BaseScene {
         this._freezeTimer?.remove(false);
         this._freezeTimer = undefined;
         this.chain.frozen = true;
-        this.chain.speedMultiplier = 1.0;
         this.shooter.setEnabled(false);
         this.projectilePool.forEachAlive((p) => {
             if (p.marble) { this.marblePool.release(p.marble); p.marble = null; }
