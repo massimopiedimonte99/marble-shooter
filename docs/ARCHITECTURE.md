@@ -74,6 +74,8 @@ src/
   uniforme (NON setDisplaySize) per preservare aspect ratio. `height` derivato internamente
   come `width * (360/835)`; non è un parametro dell'helper. Container Phaser con bg Image +
   Text; hover alpha 0.85, click → `diag.log('button_pressed')` + callback. Nessun tween.
+  `fontSize` default `height * 0.35` (era 0.42 — troppo aggressivo per label >4 char);
+  passare `fontSize` esplicito (es. `'32px'`) per label come "PLAY AGAIN" / "TRY AGAIN".
 - **Panel layout**: `PANEL_VICTORY` / `PANEL_LOSE` sono PNG 1024×1024 **quadrati**.
   Displayare sempre come 620×620. La cream area utile è centrata a offset y **+53 px** dal
   centro del panel (a display 620). Cartiglio drape: offset y **-201 px**. Posizionare tutto il
@@ -87,12 +89,18 @@ src/
   nessun handler funzionale (power-up, settings).
 - **icon_pause**: no-op silenzioso in questa fase (solo `diag.log`). Diventerà overlay
   PauseScene in Fase 2.
-- **Drain hole**: visual cue all'endpoint del path in GameScene (80×80 px), `setDepth(-5)`
-  per restare sotto la catena marble. Endpoint corrente a (0.50W, 0.72H) = centro basso.
-- **Path GameScene**: coefficienti W/H normalizzati. Endpoint a (0.50W, 0.72H). Linea path
-  leggera: `lineStyle(2, 0x445566, 0.35)`.
-- **TODO Fase 2**: valutare MARBLE_RADIUS 16→18-20 con ribilanciamento COLLISION_THRESHOLD
-  e MARBLE_SPACING per migliorare leggibilità marmi su schermo fisico.
+- **Drain hole**: visual cue all'endpoint del path in GameScene (70×70 px), `setDepth(-5)`
+  per restare sotto la catena marble. Endpoint corrente a (0.50W, 0.66H).
+- **Path GameScene**: coefficienti W/H normalizzati. Endpoint a (0.50W, 0.66H). Linea path
+  `lineStyle(2, 0x445566, 0.25)` visibile **solo in DEV** (produzione pulita).
+- **Config tuning** (da fix manuale): `MARBLE_RADIUS 22` (era 16 — dettaglio glossy
+  illeggibile a 32px); `COLLISION_THRESHOLD 44` via `MARBLE_RADIUS*2` automatico.
+  `MARBLE_SPACING 43 ≈ 2*radius-1` → touching, feel Zuma-classic.
+  `CHAIN_SPEED 0.00005` (rollback da 0.00008, ingiocabile in test manuale).
+  `SHOOTER_SIZE 180` (era 150).
+- **HUD GameScene**: score counter top-center pill 220×60 (placeholder "0", coin + testo,
+  depth 10-11); icon_pause top-right (GAME_WIDTH-56, 56) 64×64; power-up shelf coral
+  510×140 a y=1170 con 4 icone 100×100 (depth 1). Guard input: y∈[90, 1100].
 
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente

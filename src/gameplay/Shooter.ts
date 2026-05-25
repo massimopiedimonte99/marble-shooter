@@ -3,7 +3,7 @@ import { MARBLE_RADIUS } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { MarbleColor, MARBLE_COLOR_COUNT, MARBLE_COLOR_HEX } from '@/gameplay/MarbleColor';
 
-const SHOOTER_SIZE = 150;
+const SHOOTER_SIZE = 180;
 
 export class Shooter {
     public readonly x: number;

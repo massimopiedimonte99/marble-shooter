@@ -46,6 +46,6 @@ export class WinScene extends BaseScene {
 
         createButton(this, cx, creamY + 175, 'PLAY AGAIN',
             () => this.scene.start('Game'),
-            { width: 260, diagId: 'win_play_again' });
+            { width: 320, fontSize: '32px', diagId: 'win_play_again' });
     }
 }

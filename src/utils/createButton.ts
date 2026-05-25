@@ -33,7 +33,7 @@ export function createButton(
     const width  = opts.width ?? 280;
     const height = width * BUTTON_PILL_RATIO;
     const scale  = width / BUTTON_NATIVE_PILL_W;
-    const fontSize = opts.fontSize ?? `${Math.round(height * 0.42)}px`;
+    const fontSize = opts.fontSize ?? `${Math.round(height * 0.35)}px`;
     const color  = opts.color ?? '#ffffff';
     const diagId = opts.diagId ?? label.toLowerCase().replace(/\s+/g, '_');
 

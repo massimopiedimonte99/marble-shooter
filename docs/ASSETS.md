@@ -11,8 +11,8 @@
 
 | File | Dim. native | Dim. display runtime | AssetKey | Scena / Placement |
 |------|-------------|----------------------|----------|-------------------|
-| `marble_master.png` | 1024×1024 | 32×32 px (`MARBLE_RADIUS*2`) | `MARBLE_MASTER` | GameScene — tintato a runtime via `setTint`. Tint mode MULTIPLY: preserva highlight glossy. |
-| `shooter_master.png` | 1024×1024 | 120×120 px | `SHOOTER_MASTER` | GameScene — canna a 3 o'clock; rotazione runtime `setRotation(atan2(dy,dx))`. |
+| `marble_master.png` | 1024×1024 | 44×44 px (`MARBLE_RADIUS*2`) | `MARBLE_MASTER` | GameScene — tintato a runtime via `setTint`. Tint mode MULTIPLY: preserva highlight glossy. |
+| `shooter_master.png` | 1024×1024 | 180×180 px | `SHOOTER_MASTER` | GameScene — canna a 3 o'clock; rotazione runtime `setRotation(atan2(dy,dx))`. |
 | `bg_menu.png` | 1024×1024 | cover 720×1280 (scale ×1.25) | `BG_MENU` | MenuScene — cover scale, overcrop orizzontale accettabile. |
 | `bg_gameplay.png` | 1024×1024 | cover 720×1280 (scale ×1.25) | `BG_GAMEPLAY` | GameScene, WinScene, GameOverScene — cover scale. |
 | `logo.png` | 1024×1024 | 480×480 px | `LOGO` | MenuScene — centrato in alto (y≈25%). |
@@ -35,10 +35,10 @@
 |------|-------------|----------------------|----------|-------------------|
 | `panel_victory.png` | 1024×1024 | **620×620 px** (quadrato) | `PANEL_VICTORY` | WinScene — centrato (cx, cy). Cream area utile: offset y +53 px dal centro (creamY = cy+53). Cartiglio drape: offset y -201 px. |
 | `panel_lose.png` | 1024×1024 | **620×620 px** (quadrato) | `PANEL_LOSE` | GameOverScene — centrato (cx, cy). Stessi offset cream del panel_victory. |
-| `icon_powerup_bomb.png` | 127×128 | 80×80 px | `ICON_POWERUP_BOMB` | GameScene HUD — bottom, px=90. Placeholder silenzioso. |
-| `icon_powerup_colorblast.png` | 127×128 | 80×80 px | `ICON_POWERUP_COLORBLAST` | GameScene HUD — bottom, px=190. Placeholder silenzioso. |
-| `icon_powerup_freeze.png` | 126×128 | 80×80 px | `ICON_POWERUP_FREEZE` | GameScene HUD — bottom, px=290. Placeholder silenzioso. |
-| `icon_powerup_slingshot.png` | 126×128 | 80×80 px | `ICON_POWERUP_SLINGSHOT` | GameScene HUD — bottom, px=390. Placeholder silenzioso. |
+| `icon_powerup_bomb.png` | 127×128 | 100×100 px | `ICON_POWERUP_BOMB` | GameScene HUD — bottom shelf, px=195. Placeholder silenzioso. |
+| `icon_powerup_colorblast.png` | 127×128 | 100×100 px | `ICON_POWERUP_COLORBLAST` | GameScene HUD — bottom shelf, px=305. Placeholder silenzioso. |
+| `icon_powerup_freeze.png` | 126×128 | 100×100 px | `ICON_POWERUP_FREEZE` | GameScene HUD — bottom shelf, px=415. Placeholder silenzioso. |
+| `icon_powerup_slingshot.png` | 126×128 | 100×100 px | `ICON_POWERUP_SLINGSHOT` | GameScene HUD — bottom shelf, px=525. Placeholder silenzioso. |
 
 ### Blocco 4 — Meta / monetization
 
@@ -55,7 +55,7 @@
 | `wheel_frame.png` | 512×512 | — | `WHEEL_FRAME` | **Non wirato in questa fase**. |
 | `star_filled.png` | 128×126 | 85×85 px (laterali) / 100×100 px (centrale) | `STAR_FILLED` | WinScene — 3 stelle. |
 | `star_empty.png` | 128×126 | 85×85 px | `STAR_EMPTY` | WinScene — stella dx (placeholder). |
-| `drain_hole.png` | 1024×1024 | 120×120 px | `DRAIN_HOLE` | GameScene — endpoint path, `setDepth(-5)`. |
+| `drain_hole.png` | 1024×1024 | 70×70 px | `DRAIN_HOLE` | GameScene — endpoint path (0.50W, 0.66H), `setDepth(-5)`. |
 
 ## Asset caricati ma non wirati in questa fase
 
@@ -86,8 +86,7 @@ Saranno wirati in fasi successive:
 - [ ] `logo_small.png` 256×256: variante compact per future HUD/splash.
 - [ ] Verificare tint resa su device mobile fisico (colori leggermente più saturi
   in MULTIPLY su schermo AMOLED rispetto al monitor desktop).
-- [ ] Valutare MARBLE_RADIUS 16→18-20 con ribilanciamento COLLISION_THRESHOLD e
-  MARBLE_SPACING per migliorare leggibilità marmi su schermo fisico (Fase 2).
+- [x] ~~Valutare MARBLE_RADIUS 16→18-20~~ — fatto: MARBLE_RADIUS=22, MARBLE_SPACING=43.
 
 ## Cover scale formula
 ```ts

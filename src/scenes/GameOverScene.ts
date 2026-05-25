@@ -31,6 +31,6 @@ export class GameOverScene extends BaseScene {
 
         createButton(this, cx, creamY + 80, 'TRY AGAIN',
             () => this.scene.start('Game'),
-            { width: 260, diagId: 'gameover_retry' });
+            { width: 320, fontSize: '32px', diagId: 'gameover_retry' });
     }
 }

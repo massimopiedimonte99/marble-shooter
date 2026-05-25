@@ -45,8 +45,8 @@ export class GameScene extends BaseScene {
         this._chainEverPopulated = false;
         this._frameN = 0;
 
-        const POWERUP_SIZE = 80;
-        const POWERUP_SPACING = 100;
+        const POWERUP_SIZE = 100;
+        const POWERUP_SPACING = 110;
         const POWERUP_COUNT = 4;
         const POWERUP_Y = 1170;
         const totalSpan = (POWERUP_COUNT - 1) * POWERUP_SPACING;
@@ -56,24 +56,38 @@ export class GameScene extends BaseScene {
 
         const W = GAME_WIDTH, H = GAME_HEIGHT;
         const path = new Curves.Path(0.14 * W, 0.18 * H);
-        path.cubicBezierTo(0.88 * W, 0.34 * H, 0.55 * W, 0.12 * H, 0.92 * W, 0.22 * H);
-        path.cubicBezierTo(0.10 * W, 0.52 * H, 0.92 * W, 0.46 * H, 0.08 * W, 0.42 * H);
-        path.cubicBezierTo(0.50 * W, 0.72 * H, 0.10 * W, 0.70 * H, 0.85 * W, 0.60 * H);
+        path.cubicBezierTo(0.88 * W, 0.32 * H, 0.55 * W, 0.10 * H, 0.92 * W, 0.20 * H);
+        path.cubicBezierTo(0.10 * W, 0.48 * H, 0.92 * W, 0.42 * H, 0.08 * W, 0.38 * H);
+        path.cubicBezierTo(0.50 * W, 0.66 * H, 0.10 * W, 0.62 * H, 0.85 * W, 0.54 * H);
 
-        const gfx = this.add.graphics();
-        gfx.lineStyle(2, 0x445566, 0.35);
-        path.draw(gfx, 128);
+        if (import.meta.env.DEV) {
+            const gfx = this.add.graphics();
+            gfx.lineStyle(2, 0x445566, 0.25);
+            path.draw(gfx, 128);
+        }
 
         const endPt = path.getEndPoint();
         this.add.image(endPt.x, endPt.y, AssetKeys.DRAIN_HOLE)
-            .setDisplaySize(80, 80)
+            .setDisplaySize(70, 70)
             .setDepth(-5);
 
         this.marblePool = new MarblePool(this);
         this.chain = new MarbleChain(path, this.marblePool);
         this.projectilePool = new ProjectilePool();
-        this.shooter = new Shooter(this, GAME_WIDTH / 2, 1030);
+        this.shooter = new Shooter(this, GAME_WIDTH / 2, 990);
         this.resolver = new CollisionResolver(this.chain, this.projectilePool);
+
+        const SCORE_Y = 50;
+        const scoreBg = this.add.graphics();
+        scoreBg.fillStyle(0x2d4f5c, 0.85);
+        scoreBg.fillRoundedRect(GAME_WIDTH / 2 - 110, SCORE_Y - 30, 220, 60, 25);
+        scoreBg.setDepth(10);
+        this.add.image(GAME_WIDTH / 2 - 75, SCORE_Y, AssetKeys.COIN).setDisplaySize(40, 40).setDepth(11);
+        this.add.text(GAME_WIDTH / 2 - 45, SCORE_Y, '0', {
+            fontFamily: 'Arial Black',
+            fontSize: '28px',
+            color: '#ffffff',
+        }).setOrigin(0, 0.5).setDepth(11);
 
         diag.log('game_reset', {
             poolMarbleFreeAfter: this.marblePool.freeCount,
@@ -93,10 +107,7 @@ export class GameScene extends BaseScene {
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (this._ended || !this.shooter.enabled) return;
-            if (pointer.y < 88 && pointer.x > GAME_WIDTH - 88) return;
-            if (pointer.y > POWERUP_Y - POWERUP_SIZE / 2 - 10 &&
-                pointer.x > startX - POWERUP_SIZE / 2 &&
-                pointer.x < startX + totalSpan + POWERUP_SIZE / 2) return;
+            if (pointer.y < 90 || pointer.y > 1100) return;
 
             const proj = this.projectilePool.acquire();
             if (!proj) return;
@@ -118,6 +129,17 @@ export class GameScene extends BaseScene {
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => diag.log('button_pressed', { id: 'pause' }));
 
+        const SHELF_WIDTH = 510;
+        const SHELF_HEIGHT = 140;
+        const shelf = this.add.graphics();
+        shelf.fillStyle(0xe87363, 0.85);
+        shelf.fillRoundedRect(
+            GAME_WIDTH / 2 - SHELF_WIDTH / 2,
+            POWERUP_Y - SHELF_HEIGHT / 2,
+            SHELF_WIDTH, SHELF_HEIGHT, 30,
+        );
+        shelf.setDepth(0);
+
         const powerUps: AssetKeys[] = [
             AssetKeys.ICON_POWERUP_BOMB,
             AssetKeys.ICON_POWERUP_COLORBLAST,
@@ -128,6 +150,7 @@ export class GameScene extends BaseScene {
             const px = startX + i * POWERUP_SPACING;
             this.add.image(px, POWERUP_Y, key)
                 .setDisplaySize(POWERUP_SIZE, POWERUP_SIZE)
+                .setDepth(1)
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', () => diag.log('button_pressed', { id: key }));
         });
