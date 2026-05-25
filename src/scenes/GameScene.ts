@@ -130,6 +130,7 @@ export class GameScene extends BaseScene {
             scale: { start: 0.06, end: 0 },
             alpha: { start: 0.95, end: 0 },
             emitting: false,
+            blendMode: 'ADD'
         }).setDepth(15);
 
         diag.log('game_reset', {
@@ -294,7 +295,7 @@ export class GameScene extends BaseScene {
     private _popMarble(m: Marble): void {
         this.tweens.killTweensOf(m);
         const D = MARBLE_RADIUS * 2;
-        m.setDisplaySize(D * 1.3, D * 1.3);
+        m.setDisplaySize(D * 1.6, D * 1.6);
         diag.log('marble_pop', { color: m.marbleColor });
         this.tweens.add({
             targets: m,
