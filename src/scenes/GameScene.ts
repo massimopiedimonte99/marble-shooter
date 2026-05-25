@@ -2,7 +2,7 @@ import { Curves } from 'phaser';
 import { BaseScene } from '@/scenes/BaseScene';
 import {
     GAME_WIDTH, GAME_HEIGHT,
-    MARBLE_RADIUS, PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
+    MARBLE_RADIUS, MARBLE_POOL_SIZE, PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
 } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { coverBackground } from '@/utils/coverBackground';
@@ -41,11 +41,16 @@ export class GameScene extends BaseScene {
 
     private _onMatchHandler = (p: EventPayloads[GameEvent.Match]) => {
         this.chain.frozen = true;
+        this.chain.speedMultiplier = 1.0;
         this._freezeTimer?.remove(false);
         this._freezeTimer = this.time.delayedCall(CHAIN_FREEZE_MS, () => {
             this._freezeTimer = undefined;
             if (this._ended) return;
             this.chain.frozen = false;
+            this.chain.speedMultiplier = -0.6;
+            this.time.delayedCall(300, () => {
+                if (!this._ended) this.chain.speedMultiplier = 1.0;
+            });
             diag.log('chain_freeze_end', {});
         });
         diag.log('chain_freeze_start', { ms: CHAIN_FREEZE_MS, count: p.count });
@@ -89,13 +94,18 @@ export class GameScene extends BaseScene {
 
         coverBackground(this, AssetKeys.BG_GAMEPLAY);
 
-        // WRAP-CCW: enters top-right, sweeps over top, down left side, across bottom → drain bottom-right.
-        // Coords absolute (validated: min 270px from cannon at center, 0 points within 200px).
-        const path = new Curves.Path(630, 200);
-        path.cubicBezierTo(100, 180,  480, 60,   240, 60);    // sweep over the top → top-left
-        path.cubicBezierTo(90,  660,  40,  320,  40,  520);   // down the left side
-        path.cubicBezierTo(360, 1030, 120, 920,  220, 1010);  // across the bottom
-        path.cubicBezierTo(620, 1040, 480, 1050, 560, 1045);  // → drain bottom-right
+        // SPIRAL-v6r: outer oval CCW then inner loop → drain below cannon.
+        // Tuned for MARBLE_RADIUS=40: right CPs at x=675 (675+40=715<720), top CPs at y=60
+        // (marble top at y=20), bottom CPs at y=1040 (marble bottom at y=1080 < shelf at 1100).
+        const path = new Curves.Path(80, 150);
+        path.cubicBezierTo(630, 150,  300,  60,  570,  60);   // outer top
+        path.cubicBezierTo(640,1000,  675, 300,  675, 760);   // outer right
+        path.cubicBezierTo( 80,1010,  630,1040,  80,1040);    // outer bottom
+        path.cubicBezierTo( 90, 340,   70, 820,  70, 540);    // outer left
+        path.cubicBezierTo(480, 280,  110, 140,  340, 210);   // inner top
+        path.cubicBezierTo(490, 800,  560, 420,  560, 640);   // inner right
+        path.cubicBezierTo(260, 840,  490, 960,  340, 960);   // inner bottom
+        path.cubicBezierTo(360, 760,  220, 700,  330, 800);   // drain
 
         if (import.meta.env.DEV) {
             const gfx = this.add.graphics();
@@ -141,11 +151,15 @@ export class GameScene extends BaseScene {
             chainLen: this.chain.length,
         });
 
+        let lastSpawnColor = Math.floor(Math.random() * MARBLE_COLOR_COUNT) as MarbleColor;
         this._spawnTimer = this.time.addEvent({
             delay: 200,
-            repeat: 29,
+            repeat: MARBLE_POOL_SIZE - 1,
             callback: () => {
-                const color = (Math.floor(Math.random() * MARBLE_COLOR_COUNT)) as MarbleColor;
+                const color = Math.random() < 0.3
+                    ? lastSpawnColor
+                    : Math.floor(Math.random() * MARBLE_COLOR_COUNT) as MarbleColor;
+                lastSpawnColor = color;
                 this.chain.spawnMarble(color);
                 this._chainEverPopulated = true;
             },
@@ -334,7 +348,7 @@ export class GameScene extends BaseScene {
 
     private _spawnParticleBurst(x: number, y: number, color: MarbleColor): void {
         this._burstEmitter.setParticleTint(MARBLE_COLOR_HEX[color]);
-        this._burstEmitter.explode(8, x, y);
+        this._burstEmitter.explode(30, x, y);
     }
 
     private _endRun(target: 'Win' | 'GameOver'): void {
@@ -343,6 +357,7 @@ export class GameScene extends BaseScene {
         this._freezeTimer?.remove(false);
         this._freezeTimer = undefined;
         this.chain.frozen = true;
+        this.chain.speedMultiplier = 1.0;
         this.shooter.setEnabled(false);
         this.projectilePool.forEachAlive((p) => {
             if (p.marble) { this.marblePool.release(p.marble); p.marble = null; }
