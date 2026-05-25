@@ -1,4 +1,5 @@
 import type { MarbleColor } from '@/gameplay/MarbleColor';
+import type { Marble } from '@/gameplay/Marble';
 
 export enum GameEvent {
     MenuPlayPressed = 'menu:play',
@@ -16,7 +17,7 @@ export interface EventPayloads {
     [GameEvent.MenuPlayPressed]: void;
     [GameEvent.SettingsMuteChanged]: { music: boolean; sfx: boolean };
     [GameEvent.ProjectileFired]: { color: MarbleColor };
-    [GameEvent.MarbleInserted]: { color: MarbleColor; x: number; y: number };
+    [GameEvent.MarbleInserted]: { color: MarbleColor; x: number; y: number; marble: Marble };
     [GameEvent.Match]: { count: number; color: MarbleColor; position: { x: number; y: number } };
     [GameEvent.ChainReaction]: { steps: number; totalRemoved: number };
     [GameEvent.ChainEmpty]: Record<string, never>;

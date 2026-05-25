@@ -6,7 +6,9 @@ export type DiagKind =
     | 'frame_stats'
     | 'win_condition_met' | 'lose_condition_met'
     | 'scene_transition' | 'game_reset'
-    | 'button_pressed';
+    | 'button_pressed'
+    | 'chain_freeze_start' | 'chain_freeze_end'
+    | 'score_increment' | 'marble_pop';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 

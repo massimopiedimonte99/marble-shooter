@@ -98,9 +98,20 @@ src/
   `MARBLE_SPACING 43 ≈ 2*radius-1` → touching, feel Zuma-classic.
   `CHAIN_SPEED 0.00005` (rollback da 0.00008, ingiocabile in test manuale).
   `SHOOTER_SIZE 180` (era 150).
-- **HUD GameScene**: score counter top-center pill 220×60 (placeholder "0", coin + testo,
+- **HUD GameScene**: score counter top-center pill 220×60 (coin + testo `_scoreText`,
   depth 10-11); icon_pause top-right (GAME_WIDTH-56, 56) 64×64; power-up shelf coral
   510×140 a y=1170 con 4 icone 100×100 (depth 1). Guard input: y∈[90, 1100].
+- **Match feedback flow**: al `GameEvent.Match`, `GameScene` congela `chain.frozen` per
+  `CHAIN_FREEZE_MS=500 ms` (timer resettato a ogni match → cascade-aware), incrementa
+  lo score locale (`COIN_REWARD {3:10,4:50,5:100,6:200}`, fallback `count×50`) nel
+  counter top-center, spawna "+N" flottante (Text monouso, depth 20) + burst 8 particelle
+  `particle_circle` tintate (emitter persistente `emitting:false`, `explode(8,x,y)`, depth 15).
+- **MarbleInserted**: payload esteso con `marble: Marble`; `GameScene` fa scale-pop
+  (`setDisplaySize 1.3×→1×`, Back.easeOut 160 ms, `onComplete` reset a `D=MARBLE_RADIUS*2` —
+  copre il pool che non resetta lo scale; `killTweensOf` evita tween orfani su re-acquire).
+- **Pooling particelle**: nessun `ParticlePool` custom; l'emitter Phaser fa da pool
+  (zero alloc/frame) → soddisfa mandato CLAUDE.md.
+- **Stack note**: Phaser **4.0.0** installato (i doc dicevano 3.80+).
 
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente

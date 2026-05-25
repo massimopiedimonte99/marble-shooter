@@ -2,11 +2,12 @@ import { Curves } from 'phaser';
 import { BaseScene } from '@/scenes/BaseScene';
 import {
     GAME_WIDTH, GAME_HEIGHT,
-    PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
+    MARBLE_RADIUS, PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
 } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { coverBackground } from '@/utils/coverBackground';
-import { MarbleColor, MARBLE_COLOR_COUNT } from '@/gameplay/MarbleColor';
+import { MarbleColor, MARBLE_COLOR_COUNT, MARBLE_COLOR_HEX } from '@/gameplay/MarbleColor';
+import type { Marble } from '@/gameplay/Marble';
 import { MarblePool } from '@/pool/MarblePool';
 import { MarbleChain } from '@/gameplay/MarbleChain';
 import { Shooter } from '@/gameplay/Shooter';
@@ -15,7 +16,12 @@ import { CollisionResolver } from '@/gameplay/CollisionResolver';
 import { diag } from '@/utils/DiagLogger';
 import { eventBus } from '@/events/EventBus';
 import { GameEvent } from '@/events/EventTypes';
+import type { EventPayloads } from '@/events/EventTypes';
 import { audioManager } from '@/audio/AudioManager';
+
+const CHAIN_FREEZE_MS = 500;
+const COIN_REWARD: Record<number, number> = { 3: 10, 4: 50, 5: 100, 6: 200 };
+const coinReward = (count: number): number => COIN_REWARD[count] ?? count * 50;
 
 export class GameScene extends BaseScene {
     public chain!: MarbleChain;
@@ -27,13 +33,41 @@ export class GameScene extends BaseScene {
     private _spawnTimer?: Phaser.Time.TimerEvent;
     private _ended = false;
     private _chainEverPopulated = false;
-    private _onMatchHandler = () => {
+
+    private _scoreText!: Phaser.GameObjects.Text;
+    private _score = 0;
+    private _freezeTimer?: Phaser.Time.TimerEvent;
+    private _burstEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+
+    private _onMatchHandler = (p: EventPayloads[GameEvent.Match]) => {
+        this.chain.frozen = true;
+        this._freezeTimer?.remove(false);
+        this._freezeTimer = this.time.delayedCall(CHAIN_FREEZE_MS, () => {
+            this._freezeTimer = undefined;
+            if (this._ended) return;
+            this.chain.frozen = false;
+            diag.log('chain_freeze_end', {});
+        });
+        diag.log('chain_freeze_start', { ms: CHAIN_FREEZE_MS, count: p.count });
+
+        const reward = coinReward(p.count);
+        this._score += reward;
+        this._scoreText.setText(String(this._score));
+        diag.log('score_increment', { amount: reward, total: this._score, count: p.count });
+
+        this._spawnFloatingScore(reward, p.position.x, p.position.y);
+        this._spawnParticleBurst(p.position.x, p.position.y, p.color);
+
         diag.log('frame_stats', {
             fps: Math.round(this.game.loop.actualFps),
             chainLen: this.chain.length,
             projFree: this.projectilePool.freeCount,
             poolMarbleFree: this.marblePool.freeCount,
         });
+    };
+
+    private _onMarbleInsertedHandler = (p: EventPayloads[GameEvent.MarbleInserted]) => {
+        if (p.marble) this._popMarble(p.marble);
     };
 
     constructor() {
@@ -44,6 +78,7 @@ export class GameScene extends BaseScene {
         this._ended = false;
         this._chainEverPopulated = false;
         this._frameN = 0;
+        this._score = 0;
 
         const POWERUP_SIZE = 100;
         const POWERUP_SPACING = 110;
@@ -83,11 +118,19 @@ export class GameScene extends BaseScene {
         scoreBg.fillRoundedRect(GAME_WIDTH / 2 - 110, SCORE_Y - 30, 220, 60, 25);
         scoreBg.setDepth(10);
         this.add.image(GAME_WIDTH / 2 - 75, SCORE_Y, AssetKeys.COIN).setDisplaySize(40, 40).setDepth(11);
-        this.add.text(GAME_WIDTH / 2 - 45, SCORE_Y, '0', {
+        this._scoreText = this.add.text(GAME_WIDTH / 2 - 45, SCORE_Y, '0', {
             fontFamily: 'Arial Black',
             fontSize: '28px',
             color: '#ffffff',
         }).setOrigin(0, 0.5).setDepth(11);
+
+        this._burstEmitter = this.add.particles(0, 0, AssetKeys.PARTICLE_CIRCLE, {
+            lifespan: 420,
+            speed: { min: 110, max: 230 },
+            scale: { start: 0.06, end: 0 },
+            alpha: { start: 0.95, end: 0 },
+            emitting: false,
+        }).setDepth(15);
 
         diag.log('game_reset', {
             poolMarbleFreeAfter: this.marblePool.freeCount,
@@ -166,6 +209,7 @@ export class GameScene extends BaseScene {
         audioManager.bindEvents();
 
         eventBus.on(GameEvent.Match, this._onMatchHandler);
+        eventBus.on(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
 
         this.events.on('shutdown', this._shutdown, this);
 
@@ -247,9 +291,51 @@ export class GameScene extends BaseScene {
         }
     }
 
+    private _popMarble(m: Marble): void {
+        this.tweens.killTweensOf(m);
+        const D = MARBLE_RADIUS * 2;
+        m.setDisplaySize(D * 1.3, D * 1.3);
+        diag.log('marble_pop', { color: m.marbleColor });
+        this.tweens.add({
+            targets: m,
+            displayWidth: D,
+            displayHeight: D,
+            duration: 160,
+            ease: 'Back.easeOut',
+            onComplete: () => m.setDisplaySize(D, D),
+        });
+    }
+
+    private _spawnFloatingScore(amount: number, x: number, y: number): void {
+        const txt = this.add.text(x, y, `+${amount}`, {
+            fontFamily: 'Arial Black',
+            fontSize: '34px',
+            color: '#ffe066',
+            stroke: '#3a2a00',
+            strokeThickness: 5,
+        }).setOrigin(0.5).setDepth(20);
+        this.tweens.add({
+            targets: txt,
+            x: this._scoreText.x,
+            y: this._scoreText.y,
+            scale: { from: 1, to: 0.55 },
+            alpha: { from: 1, to: 0 },
+            duration: 700,
+            ease: 'Cubic.easeIn',
+            onComplete: () => txt.destroy(),
+        });
+    }
+
+    private _spawnParticleBurst(x: number, y: number, color: MarbleColor): void {
+        this._burstEmitter.setParticleTint(MARBLE_COLOR_HEX[color]);
+        this._burstEmitter.explode(8, x, y);
+    }
+
     private _endRun(target: 'Win' | 'GameOver'): void {
         this._ended = true;
         this._spawnTimer?.remove(false);
+        this._freezeTimer?.remove(false);
+        this._freezeTimer = undefined;
         this.chain.frozen = true;
         this.shooter.setEnabled(false);
         this.projectilePool.forEachAlive((p) => {
@@ -262,6 +348,8 @@ export class GameScene extends BaseScene {
 
     private _shutdown(): void {
         eventBus.off(GameEvent.Match, this._onMatchHandler);
+        eventBus.off(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
+        this._freezeTimer?.remove(false);
         if (import.meta.env.DEV) {
             delete (window as any).__forceChainState;
             delete (window as any).__disableShooter;
