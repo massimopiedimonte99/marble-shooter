@@ -1,5 +1,8 @@
 import { BaseScene } from '@/scenes/BaseScene';
 import { GAME_WIDTH, GAME_HEIGHT } from '@/constants/Config';
+import { AssetKeys } from '@/constants/AssetKeys';
+import { coverBackground } from '@/utils/coverBackground';
+import { createButton } from '@/utils/createButton';
 
 export class GameOverScene extends BaseScene {
     constructor() {
@@ -10,25 +13,21 @@ export class GameOverScene extends BaseScene {
         const cx = GAME_WIDTH / 2;
         const cy = GAME_HEIGHT / 2;
 
-        this.cameras.main.setBackgroundColor('#1a1a2e');
+        coverBackground(this, AssetKeys.BG_GAMEPLAY);
+        this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.5);
 
-        this.add.text(cx, cy - 80, 'Game Over', {
+        this.add.image(cx, cy, AssetKeys.PANEL_LOSE).setDisplaySize(620, 880);
+
+        this.add.text(cx, cy - 240, 'Game Over', {
             fontFamily: 'Arial Black',
-            fontSize: '48px',
+            fontSize: '52px',
             color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 8,
+            stroke: '#3a1a0e',
+            strokeThickness: 6,
         }).setOrigin(0.5);
 
-        const btnBg = this.add.rectangle(cx, cy + 40, 220, 60, 0xe94560).setInteractive({ useHandCursor: true });
-        this.add.text(cx, cy + 40, 'Try Again', {
-            fontFamily: 'Arial Black',
-            fontSize: '24px',
-            color: '#ffffff',
-        }).setOrigin(0.5);
-
-        btnBg.on('pointerover', () => btnBg.setFillStyle(0xff6b81));
-        btnBg.on('pointerout', () => btnBg.setFillStyle(0xe94560));
-        btnBg.on('pointerdown', () => this.scene.start('Game'));
+        createButton(this, cx, cy + 200, 'TRY AGAIN',
+            () => this.scene.start('Game'),
+            { width: 320, height: 90, fontSize: '30px', diagId: 'gameover_retry' });
     }
 }

@@ -69,6 +69,17 @@ src/
   `scale = Math.max(W/texW, H/texH)` → overcrop orizzontale su canvas portrait.
 - **Key enum**: sempre da `AssetKeys` in `src/constants/AssetKeys.ts`, mai stringhe magiche.
   Usare `enum` regolare (non `const enum`) per compatibilità esbuild/Vite dev.
+- **createButton** (`src/utils/createButton.ts`): helper per pattern button_master + label
+  centrata. Container Phaser con bg Image + Text; hover alpha 0.85, click → `diag.log('button_pressed')` + callback. Nessun tween.
+- **HUD inline nelle scene**: icone e pulsanti HUD creati direttamente in `create()` di ogni
+  scena. Nessuna cartella `src/ui/` in questa fase; potrà essere introdotta in Fase 2 se la
+  complessità aumenta.
+- **Sound toggle**: stato volatile locale a MenuScene (variabile `soundOn`). Persistenza
+  rinviata a Fase 2 → `GameState` / `SaveManager`.
+- **Bottoni placeholder**: solo `diag.log('button_pressed', { id })`, nessun event emit,
+  nessun handler funzionale (power-up, settings, double rewards).
+- **Drain hole**: visual cue all'endpoint del path in GameScene, `setDepth(-5)` per restare
+  sotto la catena marble.
 
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente

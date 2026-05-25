@@ -5,7 +5,8 @@ export type DiagKind =
     | 'audio_play'
     | 'frame_stats'
     | 'win_condition_met' | 'lose_condition_met'
-    | 'scene_transition' | 'game_reset';
+    | 'scene_transition' | 'game_reset'
+    | 'button_pressed';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 

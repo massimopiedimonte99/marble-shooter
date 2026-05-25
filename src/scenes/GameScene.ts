@@ -57,6 +57,11 @@ export class GameScene extends BaseScene {
         gfx.lineStyle(3, 0x445566, 0.7);
         path.draw(gfx, 128);
 
+        const endPt = path.getEndPoint();
+        this.add.image(endPt.x, endPt.y, AssetKeys.DRAIN_HOLE)
+            .setDisplaySize(120, 120)
+            .setDepth(-5);
+
         this.marblePool = new MarblePool(this);
         this.chain = new MarbleChain(path, this.marblePool);
         this.projectilePool = new ProjectilePool();
@@ -81,7 +86,8 @@ export class GameScene extends BaseScene {
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (this._ended || !this.shooter.enabled) return;
-            if (pointer.y < 40 && pointer.x > GAME_WIDTH - 80) return;
+            if (pointer.x > GAME_WIDTH - 88 && pointer.y < 88) return;
+            if (pointer.y > GAME_HEIGHT - 120 && pointer.x < 480) return;
 
             const proj = this.projectilePool.acquire();
             if (!proj) return;
@@ -98,21 +104,36 @@ export class GameScene extends BaseScene {
             eventBus.emit(GameEvent.ProjectileFired, { color });
         });
 
-        const back = this.add.text(GAME_WIDTH - 16, 16, '← menu', {
-            fontFamily: 'Arial',
-            fontSize: '16px',
-            color: '#aaaaaa',
-        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        this.add.image(GAME_WIDTH - 56, 56, AssetKeys.ICON_PAUSE)
+            .setDisplaySize(64, 64)
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                diag.log('button_pressed', { id: 'pause' });
+                this.scene.start('Menu');
+            });
 
-        back.on('pointerover', () => back.setColor('#ffffff'));
-        back.on('pointerout', () => back.setColor('#aaaaaa'));
-        back.on('pointerdown', () => this.scene.start('Menu'));
+        const powerUpY = GAME_HEIGHT - 80;
+        const powerUps: AssetKeys[] = [
+            AssetKeys.ICON_POWERUP_BOMB,
+            AssetKeys.ICON_POWERUP_COLORBLAST,
+            AssetKeys.ICON_POWERUP_FREEZE,
+            AssetKeys.ICON_POWERUP_SLINGSHOT,
+        ];
+        powerUps.forEach((key, i) => {
+            const px = 90 + i * 100;
+            this.add.image(px, powerUpY, key)
+                .setDisplaySize(80, 80)
+                .setInteractive({ useHandCursor: true })
+                .on('pointerdown', () => diag.log('button_pressed', { id: key }));
+        });
 
-        this.add.text(16, GAME_HEIGHT - 16, `${GAME_WIDTH}×${GAME_HEIGHT}`, {
-            fontFamily: 'Arial',
-            fontSize: '12px',
-            color: '#444466',
-        }).setOrigin(0, 1);
+        if (import.meta.env.DEV) {
+            this.add.text(16, GAME_HEIGHT - 16, `${GAME_WIDTH}×${GAME_HEIGHT}`, {
+                fontFamily: 'Arial',
+                fontSize: '12px',
+                color: '#444466',
+            }).setOrigin(0, 1);
+        }
 
         audioManager.bindEvents();
 

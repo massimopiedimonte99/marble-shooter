@@ -1,7 +1,36 @@
 export enum AssetKeys {
+    // Blocco 1 — Worldbuilding
     MARBLE_MASTER  = 'marble_master',
     SHOOTER_MASTER = 'shooter_master',
     BG_MENU        = 'bg_menu',
     BG_GAMEPLAY    = 'bg_gameplay',
     LOGO           = 'logo',
+    // Blocco 2 — UI core
+    BUTTON_MASTER   = 'button_master',
+    ICON_PAUSE      = 'icon_pause',
+    ICON_SETTINGS   = 'icon_settings',
+    ICON_SOUND_ON   = 'icon_sound_on',
+    ICON_SOUND_OFF  = 'icon_sound_off',
+    PARTICLE_CIRCLE = 'particle_circle',
+    PARTICLE_STAR   = 'particle_star',
+    // Blocco 3 — Polish screens
+    PANEL_VICTORY            = 'panel_victory',
+    PANEL_LOSE               = 'panel_lose',
+    ICON_POWERUP_BOMB        = 'icon_powerup_bomb',
+    ICON_POWERUP_COLORBLAST  = 'icon_powerup_colorblast',
+    ICON_POWERUP_FREEZE      = 'icon_powerup_freeze',
+    ICON_POWERUP_SLINGSHOT   = 'icon_powerup_slingshot',
+    // Blocco 4 — Meta / monetization
+    CHEST_CLOSED        = 'chest_closed',
+    CHEST_OPEN          = 'chest_open',
+    COIN                = 'coin',
+    GEM                 = 'gem',
+    ADS_BADGE           = 'ads_badge',
+    LEVEL_NODE_LOCKED   = 'level_node_locked',
+    LEVEL_NODE_UNLOCKED = 'level_node_unlocked',
+    WHEEL_DISC          = 'wheel_disc',
+    WHEEL_FRAME         = 'wheel_frame',
+    STAR_FILLED         = 'star_filled',
+    STAR_EMPTY          = 'star_empty',
+    DRAIN_HOLE          = 'drain_hole',
 }
