@@ -6,7 +6,12 @@ export const SAVE_VERSION = 1;
 export const MARBLE_RADIUS = 40;
 export const MARBLE_SPACING = 50;    // centro-centro, touching ~2*radius-1
 export const CHAIN_SPEED = 0.00002; // Δt per ms
-export const MARBLE_POOL_SIZE = 32;
+
+// Marbles che riempiono la catena a inizio livello (payload del livello).
+export const CHAIN_INITIAL_MARBLES = 28;
+// Capacità del pool: DEVE superare la catena iniziale + inserimenti senza match
+// + proiettili in volo, altrimenti il cannone resta a secco e smette di sparare.
+export const MARBLE_POOL_SIZE = 64;
 
 export const PROJECTILE_SPEED = 1.2;             // px/ms
 export const PROJECTILE_MAX_LIFETIME_MS = 3000;

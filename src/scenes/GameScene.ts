@@ -2,7 +2,7 @@ import { Curves } from 'phaser';
 import { BaseScene } from '@/scenes/BaseScene';
 import {
     GAME_WIDTH, GAME_HEIGHT,
-    MARBLE_RADIUS, MARBLE_POOL_SIZE, PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
+    MARBLE_RADIUS, CHAIN_INITIAL_MARBLES, PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
 } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { coverBackground } from '@/utils/coverBackground';
@@ -194,7 +194,7 @@ export class GameScene extends BaseScene {
         let lastSpawnColor = Math.floor(Math.random() * MARBLE_COLOR_COUNT) as MarbleColor;
         this._spawnTimer = this.time.addEvent({
             delay: 200,
-            repeat: MARBLE_POOL_SIZE - 1,
+            repeat: CHAIN_INITIAL_MARBLES - 1,
             callback: () => {
                 const color = Math.random() < 0.3
                     ? lastSpawnColor
@@ -220,9 +220,10 @@ export class GameScene extends BaseScene {
 
             const proj = this.projectilePool.acquire();
             if (!proj) return;
-            const color = this.shooter.consumeAndRoll();
+            const color = this.shooter.getNextColor();
             const marble = this.marblePool.acquire(color, this.shooter.x, this.shooter.y);
             if (!marble) { this.projectilePool.release(proj); return; }
+            this.shooter.consumeAndRoll();
             proj.marble = marble;
             const dx = pointer.x - this.shooter.x;
             const dy = pointer.y - this.shooter.y;
@@ -334,7 +335,7 @@ this.shooter.update(this.input.activePointer);
             diag.log('win_condition_met', { chainLen: 0, t: this.time.now });
             this._ended = true;
             eventBus.emit(GameEvent.LevelCompleted, {});
-            this._endRun('GameOver');
+            this._endRun('Win');
             return;
         }
 
