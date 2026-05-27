@@ -41,9 +41,9 @@ export class MarbleChain {
     }
 
     update(_time: number, delta: number): void {
-        if (this.frozen) return;
-        this._headT += this.speed * delta;
-
+        if (!this.frozen) {
+            this._headT += this.speed * delta;
+        }
         let i = 0;
         this.chain.forEach((marble) => {
             const t = this._headT - i * this.tSpacing;
@@ -55,6 +55,12 @@ export class MarbleChain {
             }
             i++;
         });
+    }
+
+    retractHead(slots: number): void {
+        this._headT -= slots * this.tSpacing;
+        if (this._headT < 0) this._headT = 0;
+        diag.log('chain_retract', { slots, headT: this._headT });
     }
 
     forEachMarble(cb: (m: Marble) => void): void {
@@ -123,6 +129,7 @@ export class MarbleChain {
             const color = group[0].value.marbleColor;
 
             this.removeNodes(group);
+            if (after) this.retractHead(group.length);
             groups.push({ color, count: group.length, position: { x: px, y: py } });
             totalRemoved += group.length;
             chainSteps++;

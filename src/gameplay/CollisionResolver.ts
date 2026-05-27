@@ -32,17 +32,6 @@ export class CollisionResolver {
             p.marble = null;
             this.projectiles.release(p);
             diag.log('projectile_release', { reason: 'collision' });
-
-            const result = this.chain.resolveMatchesFrom(newNode);
-            for (const g of result.groups) {
-                eventBus.emit(GameEvent.Match, { count: g.count, color: g.color, position: g.position });
-            }
-            if (result.chainSteps >= 2) {
-                eventBus.emit(GameEvent.ChainReaction, { steps: result.chainSteps, totalRemoved: result.totalRemoved });
-            }
-            if (this.chain.length === 0) {
-                eventBus.emit(GameEvent.ChainEmpty, {});
-            }
         });
     }
 }

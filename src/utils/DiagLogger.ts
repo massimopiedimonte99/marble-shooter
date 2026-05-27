@@ -8,6 +8,7 @@ export type DiagKind =
     | 'scene_transition' | 'game_reset'
     | 'button_pressed'
     | 'chain_freeze_start' | 'chain_freeze_end'
+    | 'back_movement_start' | 'back_movement_end' | 'chain_retract'
     | 'score_increment' | 'marble_pop';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }

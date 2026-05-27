@@ -120,6 +120,29 @@ src/
   `particle_circle.png` che ha sfondo nero invece di alpha trasparente.
 - **Stack note**: Phaser **4.0.0** installato (i doc dicevano 3.80+).
 
+## Chain freeze + back-movement
+
+Timeline sequenziata (non sovrapposta):
+
+| t | evento |
+|---|--------|
+| 0 ms | marble inserita → `MarbleInserted` → `_popMarble` (insert-settle 90ms su marble + vicini) |
+| 90 ms | `_runMatchSequence` scatta: `chain.frozen=true`, `beginSettle` cattura pos di tutti i superstiti, `resolveMatchesFrom` rimuove il gruppo + `retractHead` condizionale, emette `Match`/`ChainReaction`/`ChainEmpty` |
+| 90–210 ms | hold (120ms): gap visibile, chain ferma |
+| 210–410 ms | tween `settleT 1→0` in 200ms (`Quad.easeOut`): il segmento davanti scorre indietro verso la coda |
+| 410 ms | `chain.frozen=false`, gioco riprende |
+
+### Retract condizionale
+`resolveMatchesFrom` chiama `retractHead(count)` solo se `after != null` (il gruppo eliminato non è alla coda). Casi:
+- **Middle match** (`before` e `after` esistono): retract porta il segmento anteriore indietro a ricongiungersi con la coda. Recoil visibile.
+- **Head/front match** (`before==null`, `after!=null`): retract eseguito, ma il segmento anteriore coincide già con la pos catturata → recoil no-op (nessun movimento anomalo).
+- **Tail match** (`after==null`): nessun retract, nessun recoil — la chain prosegue normalmente.
+
+### Invarianti
+- `Marble.settleT` / `beginSettle` / `setPathT` sono l'API esistente; nessuna property nuova su Marble.
+- `chain.update()` non ha early-return su `frozen`: il gate è solo su `_headT`, così il tween di back-movement ha effetto visivo ogni frame.
+- Match resolution e relative emit (`Match`, `ChainReaction`, `ChainEmpty`) sono ora in `GameScene._runMatchSequence`; `CollisionResolver` fa solo l'inserimento.
+
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente
 2. **State centralizzato**: solo GameState scrive su localStorage, mai scene singole

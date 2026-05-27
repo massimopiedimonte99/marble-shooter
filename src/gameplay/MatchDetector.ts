@@ -5,6 +5,16 @@ import { diag } from '@/utils/DiagLogger';
 const MIN_MATCH = 3;
 
 export class MatchDetector {
+    static hasMatch(seed: LinkedListNode<Marble>): boolean {
+        const color = seed.value.marbleColor;
+        let count = 1;
+        let cur: LinkedListNode<Marble> | null = seed.prev;
+        while (cur && cur.value.marbleColor === color) { count++; cur = cur.prev; }
+        cur = seed.next;
+        while (cur && cur.value.marbleColor === color) { count++; cur = cur.next; }
+        return count >= MIN_MATCH;
+    }
+
     static findMatchGroup(seed: LinkedListNode<Marble>): LinkedListNode<Marble>[] | null {
         const color = seed.value.marbleColor;
         const backward: LinkedListNode<Marble>[] = [];
