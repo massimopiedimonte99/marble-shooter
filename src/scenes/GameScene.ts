@@ -1,4 +1,4 @@
-import { Curves } from 'phaser';
+import { Curves, Geom } from 'phaser';
 import { BaseScene } from '@/scenes/BaseScene';
 import {
     GAME_WIDTH, GAME_HEIGHT,
@@ -39,6 +39,8 @@ export class GameScene extends BaseScene {
     private _score = 0;
     private _freezeTimer?: Phaser.Time.TimerEvent;
     private _burstEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+    private _shelfRect!: Phaser.Geom.Rectangle;
+    private _pauseRect!: Phaser.Geom.Rectangle;
 
     private _ignoreNextPointerUp = true;
 
@@ -213,10 +215,7 @@ export class GameScene extends BaseScene {
             }
 
             if (this._ended || !this.shooter.enabled) return;
-            if (pointer.y < 90 || pointer.y > 1100) return;
-            const adx = pointer.x - this.shooter.x;
-            const ady = pointer.y - this.shooter.y;
-            if (Math.hypot(adx, ady) < 50) return;
+            if (!this._pointerInAimZone(pointer)) return;
 
             const proj = this.projectilePool.acquire();
             if (!proj) return;
@@ -234,10 +233,11 @@ export class GameScene extends BaseScene {
             eventBus.emit(GameEvent.ProjectileFired, { color });
         });
 
-        this.add.image(GAME_WIDTH - 56, 56, AssetKeys.ICON_PAUSE)
+        const pauseBtn = this.add.image(GAME_WIDTH - 56, 56, AssetKeys.ICON_PAUSE)
             .setDisplaySize(64, 64)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => diag.log('button_pressed', { id: 'pause' }));
+            .setInteractive({ useHandCursor: true });
+        pauseBtn.on('pointerdown', () => diag.log('button_pressed', { id: 'pause' }));
+        this._pauseRect = pauseBtn.getBounds();
 
         const SHELF_WIDTH = 510;
         const SHELF_HEIGHT = 140;
@@ -249,6 +249,14 @@ export class GameScene extends BaseScene {
             SHELF_WIDTH, SHELF_HEIGHT, 30,
         );
         shelf.setDepth(0);
+
+        // Solo il rettangolo dello scaffale blocca il tiro: lo spazio vuoto
+        // sotto/ai lati resta zona di mira valida.
+        this._shelfRect = new Geom.Rectangle(
+            GAME_WIDTH / 2 - SHELF_WIDTH / 2,
+            POWERUP_Y - SHELF_HEIGHT / 2,
+            SHELF_WIDTH, SHELF_HEIGHT,
+        );
 
         const powerUps: AssetKeys[] = [
             AssetKeys.ICON_POWERUP_BOMB,
@@ -308,11 +316,23 @@ export class GameScene extends BaseScene {
         }
     }
 
+    // Zona in cui si può mirare/sparare: bloccano il tiro solo gli elementi
+    // davvero interattivi (scaffale power-up, tasto pausa) e il cannone stesso.
+    // Il totalizzatore coin è solo display, quindi resta sparabile.
+    private _pointerInAimZone(pointer: Phaser.Input.Pointer): boolean {
+        if (this._shelfRect.contains(pointer.x, pointer.y)) return false;
+        if (this._pauseRect.contains(pointer.x, pointer.y)) return false;
+        const dx = pointer.x - this.shooter.x;
+        const dy = pointer.y - this.shooter.y;
+        return Math.hypot(dx, dy) >= 50;
+    }
+
     update(_time: number, delta: number): void {
         if (this._ended) return;
 
         this.chain.update(_time, delta);
-        this.shooter.update(this.input.activePointer);
+        const pointer = this.input.activePointer;
+        this.shooter.update(pointer, !this._ended && this.shooter.enabled && this._pointerInAimZone(pointer));
         this.projectilePool.forEachAlive((p) => {
             const m = p.marble;
             if (!m) return;
@@ -399,21 +419,32 @@ export class GameScene extends BaseScene {
     }
 
     private _spawnFloatingScore(amount: number, x: number, y: number): void {
-        const txt = this.add.text(x, y, `+${amount}`, {
+        const txt = this.add.text(0, 0, `+${amount}`, {
             fontFamily: 'Arial Black',
             fontSize: '40px',
             color: '#ffe066',
             strokeThickness: 5,
-        }).setOrigin(0.5).setDepth(20);
+        }).setOrigin(0, 0.5);
+
+        // Coin + testo raggruppati in un container, centrati sul punto del match
+        // e fatti volare insieme verso il totalizzatore.
+        const COIN_SIZE = 38;
+        const GAP = 6;
+        const totalW = COIN_SIZE + GAP + txt.width;
+        const coin = this.add.image(-totalW / 2 + COIN_SIZE / 2, 0, AssetKeys.COIN)
+            .setDisplaySize(COIN_SIZE, COIN_SIZE);
+        txt.setX(-totalW / 2 + COIN_SIZE + GAP);
+
+        const group = this.add.container(x, y, [coin, txt]).setDepth(20);
         this.tweens.add({
-            targets: txt,
+            targets: group,
             x: this._scoreText.x,
             y: this._scoreText.y,
             scale: { from: 1, to: 0.55 },
             alpha: { from: 1, to: 0 },
             duration: 700,
             ease: 'Cubic.easeIn',
-            onComplete: () => txt.destroy(),
+            onComplete: () => group.destroy(),
         });
     }
 

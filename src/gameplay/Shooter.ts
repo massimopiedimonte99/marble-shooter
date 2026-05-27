@@ -34,7 +34,7 @@ export class Shooter {
             .setTint(MARBLE_COLOR_HEX[this._nextColor]);
     }
 
-    update(pointer: Phaser.Input.Pointer): void {
+    update(pointer: Phaser.Input.Pointer, canCharge: boolean): void {
 
         const angle = Math.atan2(
             pointer.y - this.y,
@@ -43,8 +43,9 @@ export class Shooter {
 
         this._sprite.setRotation(angle);
 
-        // Se tengo premuto → carica il colpo
-        this._targetRecoil = pointer.isDown ? MAX_RECOIL : 0;
+        // Recoil solo se sto premendo NELLA zona di mira: cliccando su UI
+        // (power-up, totalizzatore coin) il cannone non rincula.
+        this._targetRecoil = (canCharge && pointer.isDown) ? MAX_RECOIL : 0;
 
         // Smooth interpolation
 this._recoil = PhaserMath.Linear(
