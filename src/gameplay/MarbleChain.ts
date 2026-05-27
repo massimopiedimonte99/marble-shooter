@@ -68,8 +68,8 @@ export class MarbleChain {
         while (cur) {
             const m = cur.value;
             if (m.visible) {
-                const dx = m.x - x;
-                const dy = m.y - y;
+                const dx = m.trueX - x;
+                const dy = m.trueY - y;
                 const d2 = dx * dx + dy * dy;
                 if (d2 < bestDistSq) { bestDistSq = d2; best = cur; }
             }

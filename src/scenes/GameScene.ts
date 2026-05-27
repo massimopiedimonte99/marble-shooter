@@ -70,7 +70,7 @@ export class GameScene extends BaseScene {
     };
 
     private _onMarbleInsertedHandler = (p: EventPayloads[GameEvent.MarbleInserted]) => {
-        if (p.marble) this._popMarble(p.marble);
+        if (p.marble) this._popMarble(p.marble, p.x, p.y);
     };
 
     constructor() {
@@ -312,7 +312,7 @@ export class GameScene extends BaseScene {
         if (this._ended) return;
 
         this.chain.update(_time, delta);
-this.shooter.update(this.input.activePointer);
+        this.shooter.update(this.input.activePointer);
         this.projectilePool.forEachAlive((p) => {
             const m = p.marble;
             if (!m) return;
@@ -357,18 +357,44 @@ this.shooter.update(this.input.activePointer);
         }
     }
 
-    private _popMarble(m: Marble): void {
-        this.tweens.killTweensOf(m);
+    private _popMarble(m: Marble, fromX: number, fromY: number): void {
         const D = MARBLE_RADIUS * 2;
-        m.setDisplaySize(D * 1.6, D * 1.6);
         diag.log('marble_pop', { color: m.marbleColor });
+
+        // Inserimento come UN UNICO movimento: la pallina entra dal punto
+        // d'impatto e, nello stesso istante e con la stessa durata, tutte le
+        // palline dietro scivolano indietro di uno slot. Niente "scatto" dei
+        // vicini seguito da una planata lenta: tutto parte e finisce insieme.
+        const targets: Marble[] = [m];
+        this.tweens.killTweensOf(m);
+        m.beginSettle(fromX, fromY);
+
+        let n = m.node?.next ?? null;
+        while (n) {
+            const nm = n.value;
+            this.tweens.killTweensOf(nm);
+            nm.beginSettle(nm.x, nm.y); // parte dalla posizione attuale (slot vecchio)
+            targets.push(nm);
+            n = n.next;
+        }
+
         this.tweens.add({
-            targets: m,
-            displayWidth: D,
-            displayHeight: D,
-            duration: 160,
-            ease: 'Back.easeOut',
-            onComplete: () => m.setDisplaySize(D, D),
+            targets,
+            settleT: 0,
+            duration: 90,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+                // "Pop" di arrivo solo sulla pallina inserita.
+                m.setDisplaySize(D * 1.15, D * 1.15);
+                this.tweens.add({
+                    targets: m,
+                    displayWidth: D,
+                    displayHeight: D,
+                    duration: 90,
+                    ease: 'Back.easeOut',
+                    onComplete: () => m.setDisplaySize(D, D),
+                });
+            },
         });
     }
 
