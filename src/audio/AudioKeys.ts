@@ -5,4 +5,6 @@ export enum AudioKeys {
     MATCH_4        = 'MATCH_4',
     MATCH_COMBO    = 'MATCH_COMBO',
     CHAIN_REACTION = 'CHAIN_REACTION',
+    WIN            = 'WIN',
+    GAME_OVER      = 'GAME_OVER',
 }

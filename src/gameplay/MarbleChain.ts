@@ -5,6 +5,7 @@ import { Marble } from '@/gameplay/Marble';
 import { MarbleColor } from '@/gameplay/MarbleColor';
 import { MarblePool } from '@/pool/MarblePool';
 import { MatchDetector } from '@/gameplay/MatchDetector';
+import { ArcLengthPath } from '@/gameplay/ArcLengthPath';
 import { diag } from '@/utils/DiagLogger';
 
 export type MatchResolutionResult = {
@@ -18,18 +19,20 @@ export type { LinkedListNode };
 export class MarbleChain {
     public frozen = false;
     private chain = new LinkedList<Marble>();
-    private _headT = 0;
-    private readonly tSpacing: number;
+    /** Arc-length position of the head marble (pixels along the path) */
+    private _headArcLen = 0;
+    private readonly arcPath: ArcLengthPath;
+    /** pixels / ms — keeps the same traversal time as the old t-based speed */
+    private readonly speedPx: number;
     private readonly tmpVec = new PhaserMath.Vector2();
-    private readonly speed: number;
 
     constructor(
-        private readonly path: Phaser.Curves.Path,
+        path: Phaser.Curves.Path,
         private readonly pool: MarblePool,
         speed: number = CHAIN_SPEED,
     ) {
-        this.tSpacing = MARBLE_SPACING / path.getLength();
-        this.speed = speed;
+        this.arcPath = new ArcLengthPath(path);
+        this.speedPx = speed * this.arcPath.totalLength;
     }
 
     spawnMarble(color: MarbleColor): void {
@@ -42,25 +45,25 @@ export class MarbleChain {
 
     update(_time: number, delta: number): void {
         if (!this.frozen) {
-            this._headT += this.speed * delta;
+            this._headArcLen += this.speedPx * delta;
         }
         let i = 0;
         this.chain.forEach((marble) => {
-            const t = this._headT - i * this.tSpacing;
-            if (t < 0 || t > 1) {
+            const s = this._headArcLen - i * MARBLE_SPACING;
+            if (s < 0 || s > this.arcPath.totalLength) {
                 marble.setVisible(false);
             } else {
                 marble.setVisible(true);
-                marble.setPathT(t, this.path, this.tmpVec);
+                marble.setPathT(this.arcPath.tAt(s), this.arcPath.path, this.tmpVec);
             }
             i++;
         });
     }
 
     retractHead(slots: number): void {
-        this._headT -= slots * this.tSpacing;
-        if (this._headT < 0) this._headT = 0;
-        diag.log('chain_retract', { slots, headT: this._headT });
+        this._headArcLen -= slots * MARBLE_SPACING;
+        if (this._headArcLen < 0) this._headArcLen = 0;
+        diag.log('chain_retract', { slots, headArcLen: this._headArcLen });
     }
 
     forEachMarble(cb: (m: Marble) => void): void {
@@ -84,18 +87,18 @@ export class MarbleChain {
         return best;
     }
 
-    insertMarbleAfter(after: LinkedListNode<Marble>, marble: Marble): { afterIndex: number; shiftedCount: number; node: LinkedListNode<Marble> } {
+    insertMarbleAfter(
+        after: LinkedListNode<Marble>,
+        marble: Marble,
+    ): { afterIndex: number; shiftedCount: number; node: LinkedListNode<Marble> } {
         const newNode = this.chain.insertAfter(after, marble);
         marble.node = newNode;
-
         let afterIndex = 0;
         let n: LinkedListNode<Marble> | null = this.chain.head;
         while (n && n !== newNode) { afterIndex++; n = n.next; }
-
         let shifted = 0;
         let cur = newNode.next;
         while (cur) { shifted++; cur = cur.next; }
-
         return { afterIndex, shiftedCount: shifted, node: newNode };
     }
 
@@ -107,43 +110,41 @@ export class MarbleChain {
         diag.log('chain_removed', {
             removedCount: nodes.length,
             newLength: this.chain.length,
-            chainLen: this.chain.length,
-            poolMarbleFreeAfter: this.pool.freeCount,
         });
     }
 
     resolveMatchesFrom(seed: LinkedListNode<Marble>): MatchResolutionResult {
         const groups: MatchResolutionResult['groups'] = [];
         let totalRemoved = 0;
-        let chainSteps = 0;
+        let chainSteps   = 0;
         let currentSeed: LinkedListNode<Marble> | null = seed;
 
         while (currentSeed) {
             const group = MatchDetector.findMatchGroup(currentSeed);
             if (!group) break;
-
             const before = group[0].prev;
             const after  = group[group.length - 1].next;
             const px = (group[0].value.x + group[group.length - 1].value.x) / 2;
             const py = (group[0].value.y + group[group.length - 1].value.y) / 2;
             const color = group[0].value.marbleColor;
-
             this.removeNodes(group);
             if (after) this.retractHead(group.length);
             groups.push({ color, count: group.length, position: { x: px, y: py } });
             totalRemoved += group.length;
             chainSteps++;
-
             currentSeed = (before && after && before.value.marbleColor === after.value.marbleColor)
-                ? before
-                : null;
+                ? before : null;
         }
 
-        diag.log('resolution_complete', { totalRemoved, chainSteps, groupsCount: groups.length });
+        diag.log('resolution_complete', { totalRemoved, chainSteps });
         return { totalRemoved, chainSteps, groups };
     }
 
-    get headT(): number { return this._headT; }
+    /** Bezier t of the head marble (0–1). */
+    get headT(): number { return this.arcPath.tAt(this._headArcLen); }
+
+    /** Fraction of path traversed (0–1) based on arc-length. Use for danger/lose checks. */
+    get headFraction(): number { return this._headArcLen / this.arcPath.totalLength; }
 
     get length(): number { return this.chain.length; }
 
@@ -152,6 +153,6 @@ export class MarbleChain {
         let cur = this.chain.head;
         while (cur) { nodes.push(cur); cur = cur.next; }
         for (const n of nodes) { this.chain.remove(n); this.pool.release(n.value); }
-        this._headT = 0;
+        this._headArcLen = 0;
     }
 }

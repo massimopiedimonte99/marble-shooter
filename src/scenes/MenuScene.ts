@@ -7,27 +7,41 @@ import { createButton } from '@/utils/createButton';
 import { diag } from '@/utils/DiagLogger';
 
 export class MenuScene extends BaseScene {
-    constructor() {
-        super('Menu');
-    }
+    constructor() { super('Menu'); }
 
     create(): void {
         const cx = GAME_WIDTH / 2;
 
         coverBackground(this, AssetKeys.BG_MENU);
+        this.cameras.main.fadeIn(300, 0, 0, 0);
 
-        const logo = this.add.image(cx, GAME_HEIGHT * 0.25, AssetKeys.LOGO);
+        // ── Logo — breathes gently ───────────────────────────────────────────────
+        const logo = this.add.image(cx, GAME_HEIGHT * 0.25, AssetKeys.LOGO).setDepth(5);
         logo.setDisplaySize(480, 480 * (logo.height / logo.width));
+        this.tweens.add({
+            targets: logo,
+            scaleX: logo.scaleX * 1.04,
+            scaleY: logo.scaleY * 1.04,
+            duration: 1800,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+        });
 
-        createButton(this, cx, GAME_HEIGHT * 0.55, 'PLAY', () => {
+        // ── PLAY button ──────────────────────────────────────────────────────────
+        const BTN_Y = GAME_HEIGHT * 0.55;
+
+        createButton(this, cx, BTN_Y, 'PLAY', () => {
             this.eventBus.emit(GameEvent.MenuPlayPressed);
-            this.scene.start('Game');
+            this.cameras.main.fadeOut(240, 0, 0, 0);
+            this.time.delayedCall(240, () => this.scene.start('Game'));
         }, { width: 300, diagId: 'menu_play' });
 
-        // Sound toggle (stato volatile locale)
+        // ── Sound toggle ─────────────────────────────────────────────────────────
         let soundOn = true;
         const soundIcon = this.add.image(56, 56, AssetKeys.ICON_SOUND_ON)
             .setDisplaySize(64, 64)
+            .setDepth(10)
             .setInteractive({ useHandCursor: true });
         soundIcon.on('pointerdown', () => {
             soundOn = !soundOn;
@@ -35,9 +49,10 @@ export class MenuScene extends BaseScene {
             diag.log('button_pressed', { id: 'sound_toggle', state: soundOn });
         });
 
-        // Settings (placeholder silenzioso)
+        // ── Settings (placeholder) ───────────────────────────────────────────────
         this.add.image(GAME_WIDTH - 56, 56, AssetKeys.ICON_SETTINGS)
             .setDisplaySize(64, 64)
+            .setDepth(10)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => diag.log('button_pressed', { id: 'settings' }));
     }
