@@ -121,7 +121,6 @@ export class GameScene extends BaseScene {
 
     // ── State ──────────────────────────────────────────────────────────────────
     private _frameN = 0;
-    private _startTime = 0;
     private _spawnTimer?: Phaser.Time.TimerEvent;
     private _holdTimer?: Phaser.Time.TimerEvent;
     private _ended = false;
@@ -171,8 +170,6 @@ export class GameScene extends BaseScene {
         this._frameN             = 0;
         this._score              = 0;
         this._flowOffset         = 0;
-        this._startTime          = this.time.now;
-
         const POWERUP_SIZE    = 120;
         const POWERUP_SPACING = 110;
         const POWERUP_COUNT   = 4;
@@ -604,18 +601,16 @@ export class GameScene extends BaseScene {
             if (p.marble) { this.marblePool.release(p.marble); p.marble = null; }
             this.projectilePool.release(p);
         });
-        const elapsedMs = this.time.now - this._startTime;
-
         const { isHighScore, previous } = saveManager.submitScore(this._score);
         diag.log('score_submitted', { score: this._score, isHighScore, previousHigh: previous, target });
 
         this.cameras.main.fadeOut(280, 0, 0, 0);
         this.time.delayedCall(280, () => {
-            if (target === 'Win') {
-                this.scene.start('Win', { score: this._score, elapsedMs });
-            } else {
-                this.scene.start('GameOver');
-            }
+            this.scene.start(target === 'Win' ? 'Win' : 'GameOver', {
+                score: this._score,
+                isHighScore,
+                previousHigh: previous,
+            });
         });
     }
 

@@ -3,10 +3,23 @@ import { GAME_WIDTH, GAME_HEIGHT } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { coverBackground } from '@/utils/coverBackground';
 import { createButton } from '@/utils/createButton';
+import { diag } from '@/utils/DiagLogger';
+import type { EndRunSceneData } from '@/scenes/types';
 
 export class WinScene extends BaseScene {
+    private _data: EndRunSceneData = { score: 0, isHighScore: false, previousHigh: 0 };
+
     constructor() {
         super('Win');
+    }
+
+    init(data: Partial<EndRunSceneData>): void {
+        this._data = {
+            score: data?.score ?? 0,
+            isHighScore: data?.isHighScore ?? false,
+            previousHigh: data?.previousHigh ?? 0,
+        };
+        diag.log('win_scene_init', { ...this._data });
     }
 
     create(): void {
@@ -20,6 +33,26 @@ export class WinScene extends BaseScene {
 
         this.add.image(cx, cy, AssetKeys.PANEL_VICTORY)
             .setDisplaySize(PANEL_DISPLAY, PANEL_DISPLAY);
+
+        if (this._data.isHighScore) {
+            const hs = this.add.text(cx, creamY - 210, 'NEW HIGH SCORE!', {
+                fontFamily: 'Arial Black',
+                fontSize: '36px',
+                color: '#ffe066',
+                stroke: '#a8631c',
+                strokeThickness: 6,
+            }).setOrigin(0.5);
+
+            this.tweens.add({
+                targets: hs,
+                scaleX: 1.08,
+                scaleY: 1.08,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut',
+            });
+        }
 
         this.add.text(cx, creamY - 150, 'Level Complete!', {
             fontFamily: 'Arial Black',
@@ -36,7 +69,7 @@ export class WinScene extends BaseScene {
         this.add.image(cx, creamY + 20, AssetKeys.CHEST_CLOSED).setDisplaySize(240, 140);
 
         this.add.image(cx - 90, creamY + 110, AssetKeys.COIN).setDisplaySize(80, 80);
-        this.add.text(cx - 65, creamY + 110, '+50', {
+        this.add.text(cx - 65, creamY + 110, `+${this._data.score}`, {
             fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
         }).setOrigin(0, 0.5);
         this.add.image(cx + 50, creamY + 110, AssetKeys.GEM).setDisplaySize(80, 80);

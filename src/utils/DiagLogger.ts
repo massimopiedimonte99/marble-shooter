@@ -12,7 +12,8 @@ export type DiagKind =
     | 'score_increment' | 'marble_pop'
     | 'save_load' | 'save_persist' | 'save_persist_error'
     | 'save_version_mismatch' | 'save_reset'
-    | 'score_submitted';
+    | 'score_submitted'
+    | 'win_scene_init' | 'gameover_scene_init';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 

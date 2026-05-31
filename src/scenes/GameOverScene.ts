@@ -3,9 +3,23 @@ import { GAME_WIDTH, GAME_HEIGHT } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { coverBackground } from '@/utils/coverBackground';
 import { createButton } from '@/utils/createButton';
+import { diag } from '@/utils/DiagLogger';
+import { saveManager } from '@/state/SaveManager';
+import type { EndRunSceneData } from '@/scenes/types';
 
 export class GameOverScene extends BaseScene {
+    private _data: EndRunSceneData = { score: 0, isHighScore: false, previousHigh: 0 };
+
     constructor() { super('GameOver'); }
+
+    init(data: Partial<EndRunSceneData>): void {
+        this._data = {
+            score: data?.score ?? 0,
+            isHighScore: data?.isHighScore ?? false,
+            previousHigh: data?.previousHigh ?? 0,
+        };
+        diag.log('gameover_scene_init', { ...this._data });
+    }
 
     create(): void {
         const cx     = GAME_WIDTH / 2;
@@ -29,6 +43,24 @@ export class GameOverScene extends BaseScene {
         }).setOrigin(0.5).setDepth(6);
 
         this.add.text(cx, creamY + 10, 'Better luck next time!', {
+            fontFamily: 'Arial Black',
+            fontSize: '22px',
+            color: '#5a2a1e',
+            stroke: '#f4e5c2',
+            strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(6);
+
+        const highScore = saveManager.getHighScore();
+
+        this.add.text(cx, creamY + 80, `Score: ${this._data.score}`, {
+            fontFamily: 'Arial Black',
+            fontSize: '28px',
+            color: '#3a1a0e',
+            stroke: '#f4e5c2',
+            strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(6);
+
+        this.add.text(cx, creamY + 125, `Best: ${highScore}`, {
             fontFamily: 'Arial Black',
             fontSize: '22px',
             color: '#5a2a1e',
