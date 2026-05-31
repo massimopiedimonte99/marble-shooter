@@ -30,25 +30,25 @@ export class PauseScene extends BaseScene {
             color: '#2da6a8',
         }).setOrigin(0.5);
 
-        const BTN_GAP = 120;
+        const BTN_GAP = 100;
         const btnStartY = cy + 10;
 
         createButton(this, cx, btnStartY, 'RESUME', () => {
             this.scene.stop();
             this.scene.resume('Game');
-        }, { width: 320, diagId: 'pause_resume' });
+        }, { width: 200, diagId: 'pause_resume' });
 
         createButton(this, cx, btnStartY + BTN_GAP, 'RESTART', () => {
             this.scene.stop();
             this.scene.stop('Game');
             this.scene.start('Game');
-        }, { width: 320, diagId: 'pause_restart' });
+        }, { width: 200, diagId: 'pause_restart' });
 
         createButton(this, cx, btnStartY + BTN_GAP * 2, 'QUIT', () => {
             this.scene.stop();
             this.scene.stop('Game');
             this.scene.start('Menu');
-        }, { width: 320, diagId: 'pause_quit' });
+        }, { width: 200, diagId: 'pause_quit' });
 
         diag.log('scene_transition', { from: 'GameScene', to: 'PauseScene' });
     }
