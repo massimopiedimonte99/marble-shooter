@@ -8,7 +8,7 @@ const MAX_DIST   = 420;
 
 export class AimGuide {
     private readonly _gfx: GameObjects.Graphics;
-    private _animOffset = 0;
+    private _animOffset = 40;
 
     constructor(scene: Phaser.Scene) {
         this._gfx = scene.add.graphics().setDepth(12).setAlpha(0);
@@ -22,7 +22,6 @@ export class AimGuide {
         delta: number,
         visible: boolean,
     ): void {
-        this._animOffset = (this._animOffset + 0.35) % TOTAL_STEP;
 
         if (!visible) {
             this._gfx.setAlpha(0);

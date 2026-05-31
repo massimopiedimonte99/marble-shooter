@@ -8,6 +8,22 @@ import { MatchDetector } from '@/gameplay/MatchDetector';
 import { ArcLengthPath } from '@/gameplay/ArcLengthPath';
 import { diag } from '@/utils/DiagLogger';
 
+// Squared distance from point P to the nearest point on segment A→B.
+// Using segment (not just marble centers) avoids picking the wrong marble
+// when curves bring path-far marbles into Euclidean proximity.
+function segmentDistSq(
+    px: number, py: number,
+    ax: number, ay: number,
+    bx: number, by: number,
+): number {
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) { const ex = px - ax, ey = py - ay; return ex * ex + ey * ey; }
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    const qx = ax + t * dx - px, qy = ay + t * dy - py;
+    return qx * qx + qy * qy;
+}
+
 export type MatchResolutionResult = {
     totalRemoved: number;
     chainSteps: number;
@@ -81,6 +97,34 @@ export class MarbleChain {
                 const dy = m.trueY - y;
                 const d2 = dx * dx + dy * dy;
                 if (d2 < bestDistSq) { bestDistSq = d2; best = cur; }
+            }
+            cur = cur.next;
+        }
+        return best;
+    }
+
+    /**
+     * Finds the node after which to insert a new marble so that it lands in the
+     * gap geometrically closest to (x, y).
+     *
+     * Uses point-to-segment distance on each adjacent pair rather than
+     * point-to-center distance on individual marbles. On curves, Euclidean
+     * nearest-marble can return a marble that is path-far but happens to be
+     * Euclidean-near (around the bend), causing the new marble to settle at the
+     * wrong arc-length slot. Segment distance is immune to this because marbles
+     * around the corner are not adjacent to the targeted gap.
+     */
+    findNearestGapNode(x: number, y: number, maxDistSq: number): LinkedListNode<Marble> | null {
+        let best: LinkedListNode<Marble> | null = null;
+        let bestDistSq = maxDistSq;
+        let cur = this.chain.head;
+        while (cur) {
+            if (cur.value.visible) {
+                const nxt = cur.next;
+                const distSq = (nxt && nxt.value.visible)
+                    ? segmentDistSq(x, y, cur.value.trueX, cur.value.trueY, nxt.value.trueX, nxt.value.trueY)
+                    : (x - cur.value.trueX) ** 2 + (y - cur.value.trueY) ** 2;
+                if (distSq < bestDistSq) { bestDistSq = distSq; best = cur; }
             }
             cur = cur.next;
         }

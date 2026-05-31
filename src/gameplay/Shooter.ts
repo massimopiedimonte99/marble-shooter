@@ -7,7 +7,7 @@ const SHOOTER_SIZE  = 240;
 const MAX_RECOIL    = 18;
 const RECOIL_LERP   = 0.15;
 /** Fixed Y offset below cannon for the "loaded marble" display */
-const MARBLE_DISPLAY_OFFSET_Y = 95;
+const MARBLE_DISPLAY_OFFSET_Y = 150;
 
 export class Shooter {
     public readonly x: number;
