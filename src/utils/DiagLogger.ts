@@ -9,7 +9,10 @@ export type DiagKind =
     | 'button_pressed'
     | 'chain_freeze_start' | 'chain_freeze_end'
     | 'back_movement_start' | 'back_movement_end' | 'chain_retract'
-    | 'score_increment' | 'marble_pop';
+    | 'score_increment' | 'marble_pop'
+    | 'save_load' | 'save_persist' | 'save_persist_error'
+    | 'save_version_mismatch' | 'save_reset'
+    | 'score_submitted';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 

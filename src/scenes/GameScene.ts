@@ -23,6 +23,7 @@ import { eventBus } from '@/events/EventBus';
 import { GameEvent } from '@/events/EventTypes';
 import type { EventPayloads } from '@/events/EventTypes';
 import { audioManager } from '@/audio/AudioManager';
+import { saveManager } from '@/state/SaveManager';
 
 const INSERT_SETTLE_MS = 90;
 const MATCH_HOLD_MS    = 120;
@@ -604,6 +605,10 @@ export class GameScene extends BaseScene {
             this.projectilePool.release(p);
         });
         const elapsedMs = this.time.now - this._startTime;
+
+        const { isHighScore, previous } = saveManager.submitScore(this._score);
+        diag.log('score_submitted', { score: this._score, isHighScore, previousHigh: previous, target });
+
         this.cameras.main.fadeOut(280, 0, 0, 0);
         this.time.delayedCall(280, () => {
             if (target === 'Win') {

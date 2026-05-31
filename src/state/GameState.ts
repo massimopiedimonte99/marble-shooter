@@ -1,31 +1,15 @@
-import { SaveManager, type SaveData } from '@/state/SaveManager';
 import { eventBus } from '@/events/EventBus';
 import { GameEvent } from '@/events/EventTypes';
 
+// Settings kept in-memory only — persistence deferred to Fase 2.2 (SaveManager).
 class GameState {
-    private data: SaveData;
-
-    constructor() {
-        this.data = SaveManager.load();
-    }
-
-    get musicMute(): boolean { return this.data.settings.musicMute; }
-    get sfxMute(): boolean { return this.data.settings.sfxMute; }
+    musicMute = false;
+    sfxMute = false;
 
     setMute(music: boolean, sfx: boolean): void {
-        this.data.settings.musicMute = music;
-        this.data.settings.sfxMute = sfx;
-        this.persist();
+        this.musicMute = music;
+        this.sfxMute = sfx;
         eventBus.emit(GameEvent.SettingsMuteChanged, { music, sfx });
-    }
-
-    private persist(): void {
-        this.data.lastPlayedAt = Date.now();
-        SaveManager.save(this.data);
-    }
-
-    touchLastPlayed(): void {
-        this.persist();
     }
 }
 

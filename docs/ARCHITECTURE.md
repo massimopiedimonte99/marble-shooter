@@ -143,9 +143,23 @@ Timeline sequenziata (non sovrapposta):
 - `chain.update()` non ha early-return su `frozen`: il gate è solo su `_headT`, così il tween di back-movement ha effetto visivo ogni frame.
 - Match resolution e relative emit (`Match`, `ChainReaction`, `ChainEmpty`) sono ora in `GameScene._runMatchSequence`; `CollisionResolver` fa solo l'inserimento.
 
+## Persistenza
+
+- **SaveManager** (`src/state/SaveManager.ts`) — singleton, localStorage key `SAVE_KEY`, schema versionato via `SAVE_VERSION`.
+- **Schema**: `version`, `highScore`, `totalCoinsEarned`, `powerUpInventory` (`bomb/colorBlast/freeze/slingshot`), `tutorialSeen`, `lastLevelReached`.
+- **Default**: `bomb:1` (testabile da subito), tutto il resto a 0/false.
+- **API pubblica**:
+  - `getHighScore()`, `getTotalCoins()`, `getInventory(key)`
+  - `submitScore(score)` → aggiorna highScore se nuovo record + accumula totalCoinsEarned, ritorna `{ isHighScore, previous }`. Chiamato da `GameScene._endRun` prima del fadeout.
+  - `consumePowerUp(key)` → decrementa inventario, ritorna `false` se esaurito. Usato da power-up handlers (commit #5).
+  - `grantPowerUp(key, amount?)` → incrementa inventario (reward, shop, daily).
+  - `reset()` → ripristina default e rimuove la chiave localStorage.
+- **Version mismatch**: schema letto con version diversa → reset silenzioso con `diag.log('save_version_mismatch')`.
+- **Wire-up**: `GameScene._endRun` chiama `submitScore`. WinScene/GameOverScene leggono `getHighScore()` per la UI (commit #3). Power-up handlers chiamano `consumePowerUp` (commit #5).
+
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente
-2. **State centralizzato**: solo GameState scrive su localStorage, mai scene singole
+2. **State centralizzato**: `SaveManager` è l'unico writer su localStorage, mai scene singole
 3. **Astrazione SDK**: gameplay non sa di CrazyGames/Poki, parla con IAdProvider
 4. **Pooling everywhere**: zero allocation in update()
 

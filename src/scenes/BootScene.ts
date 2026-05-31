@@ -8,7 +8,6 @@ export class BootScene extends BaseScene {
 
     create(): void {
         installPreventScroll();
-        this.gameState.touchLastPlayed();
         this.scene.start('Preload');
     }
 }
