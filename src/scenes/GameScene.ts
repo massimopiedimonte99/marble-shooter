@@ -104,7 +104,6 @@ export class GameScene extends BaseScene {
     private _flowGfx!: Phaser.GameObjects.Graphics;
     private _flowOffset = 0;
     private _marbleHighlightGfx!: Phaser.GameObjects.Graphics;
-    private _vignetteGfx!: Phaser.GameObjects.Graphics;
     private _burstEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
 
     // ── HUD ────────────────────────────────────────────────────────────────────
@@ -118,8 +117,6 @@ export class GameScene extends BaseScene {
     private _fx!: ScreenEffects;
 
     // ── Danger ─────────────────────────────────────────────────────────────────
-    private _dangerActive  = false;
-    private _dangerLevel   = 0;
 
     // ── State ──────────────────────────────────────────────────────────────────
     private _frameN = 0;
@@ -172,12 +169,10 @@ export class GameScene extends BaseScene {
         this._chainEverPopulated = false;
         this._frameN             = 0;
         this._score              = 0;
-        this._dangerActive       = false;
-        this._dangerLevel        = 0;
         this._flowOffset         = 0;
         this._startTime          = this.time.now;
 
-        const POWERUP_SIZE    = 100;
+        const POWERUP_SIZE    = 120;
         const POWERUP_SPACING = 110;
         const POWERUP_COUNT   = 4;
         const POWERUP_Y       = 1170;
@@ -194,7 +189,7 @@ export class GameScene extends BaseScene {
         // All points in x:[55,665] y:[190,1005] — marbles fully on-screen.
         // Arc-length parameterisation in MarbleChain ensures constant spacing.
         // ══════════════════════════════════════════════════════════════════════
-        const path = new Curves.Path(55, 190);
+        const path = new Curves.Path(-MARBLE_RADIUS, 190);
 
         // ── Outer loop ──────────────────────────────────────────────────────────
         path.lineTo(605, 190);
@@ -238,7 +233,6 @@ export class GameScene extends BaseScene {
         this._marbleHighlightGfx = this.add.graphics().setDepth(2);
 
         // ── Danger vignette (updated in update()) ────────────────────────────────
-        this._vignetteGfx = this.add.graphics().setDepth(48);
 
         // ── Systems ──────────────────────────────────────────────────────────────
         this._fx = new ScreenEffects(this);
@@ -292,7 +286,7 @@ export class GameScene extends BaseScene {
         // ── Power-up shelf ────────────────────────────────────────────────────────
         const SHELF_W = 510, SHELF_H = 140;
         const shelf = this.add.graphics().setDepth(12);
-        shelf.fillStyle(0xe87363, 0.85);
+        shelf.fillStyle(0x0a0a0a, 0.55);
         shelf.fillRoundedRect(
             GAME_WIDTH / 2 - SHELF_W / 2, POWERUP_Y - SHELF_H / 2,
             SHELF_W, SHELF_H, 30,
@@ -438,27 +432,6 @@ export class GameScene extends BaseScene {
             this._flowGfx.fillCircle(pt.x, pt.y, 2.5);
         }
         this._flowOffset = (this._flowOffset + 0.00011 * delta) % 1;
-
-        // ── Danger edge glow ───────────────────────────────────────────────────────
-        const hf = this.chain.headFraction;
-        this._dangerLevel = hf < 0.75 ? 0 : Math.min(1, (hf - 0.75) / 0.25);
-        const shouldDanger = this._dangerLevel > 0;
-        if (shouldDanger && !this._dangerActive) {
-            this._dangerActive = true;
-            audioManager.playDanger(); // one-shot on entry
-        } else if (!shouldDanger && this._dangerActive) {
-            this._dangerActive = false;
-        }
-        this._vignetteGfx.clear();
-        if (this._dangerLevel > 0) {
-            const edgeW = 32;
-            const a = this._dangerLevel * 0.65;
-            this._vignetteGfx.fillStyle(0xff2200, a);
-            this._vignetteGfx.fillRect(0, 0, GAME_WIDTH, edgeW);
-            this._vignetteGfx.fillRect(0, GAME_HEIGHT - edgeW, GAME_WIDTH, edgeW);
-            this._vignetteGfx.fillRect(0, edgeW, edgeW, GAME_HEIGHT - edgeW * 2);
-            this._vignetteGfx.fillRect(GAME_WIDTH - edgeW, edgeW, edgeW, GAME_HEIGHT - edgeW * 2);
-        }
 
         // ── Aim guide ──────────────────────────────────────────────────────────────
         const colorHex = MARBLE_COLOR_HEX[this.shooter.getNextColor()];

@@ -4,7 +4,7 @@ export const SAVE_KEY = 'marble_shooter_save_v1';
 export const SAVE_VERSION = 1;
 
 export const MARBLE_RADIUS = 40;
-export const MARBLE_SPACING = 44;    // centro-centro: 36px overlap keeps chain visually solid
+export const MARBLE_SPACING = 48;    // centro-centro: 36px overlap keeps chain visually solid
 export const CHAIN_SPEED = 0.00002; // Δt per ms
 
 // Marbles che riempiono la catena a inizio livello (payload del livello).

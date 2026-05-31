@@ -47,8 +47,7 @@ export class AimGuide {
 
         let d = START_DIST + this._animOffset;
         while (d < MAX_DIST) {
-            const fadeAlpha = 0.55 * (1 - d / MAX_DIST);
-            this._gfx.lineStyle(4, colorHex, Math.max(0.1, fadeAlpha));
+            this._gfx.lineStyle(4, colorHex, 1);
             const d2 = Math.min(d + DASH_LEN, MAX_DIST);
             this._gfx.beginPath();
             this._gfx.moveTo(cannonX + nx * d,  cannonY + ny * d);
@@ -59,7 +58,7 @@ export class AimGuide {
 
         const tx = cannonX + nx * MAX_DIST;
         const ty = cannonY + ny * MAX_DIST;
-        this._gfx.fillStyle(colorHex, 0.55);
+        this._gfx.fillStyle(colorHex, 1);
         this._gfx.fillTriangle(
             tx + nx * 10,          ty + ny * 10,
             tx - ny * 7,           ty + nx * 7,

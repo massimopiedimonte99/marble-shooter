@@ -148,6 +148,10 @@ export class MarbleChain {
 
     get length(): number { return this.chain.length; }
 
+    setHeadArcLen(arcLen: number): void {
+        this._headArcLen = arcLen;
+    }
+
     clearAll(): void {
         const nodes: LinkedListNode<Marble>[] = [];
         let cur = this.chain.head;
