@@ -13,7 +13,9 @@ export type DiagKind =
     | 'save_load' | 'save_persist' | 'save_persist_error'
     | 'save_version_mismatch' | 'save_reset'
     | 'score_submitted'
-    | 'win_scene_init' | 'gameover_scene_init';
+    | 'win_scene_init' | 'gameover_scene_init'
+    | 'powerup_unavailable' | 'powerup_bomb_aim_enter'
+    | 'powerup_bomb_canceled' | 'powerup_bomb_detonated' | 'powerup_bomb_dud';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 

@@ -157,6 +157,17 @@ Timeline sequenziata (non sovrapposta):
 - **Version mismatch**: schema letto con version diversa → reset silenzioso con `diag.log('save_version_mismatch')`.
 - **Wire-up**: `GameScene._endRun` chiama `submitScore`. WinScene/GameOverScene leggono `getHighScore()` per la UI (commit #3). Power-up handlers chiamano `consumePowerUp` (commit #5).
 
+## Power-ups
+
+- **Bomb** — esempio di power-up "tap-to-target". Flow: icon tap → aim mode → next tap detonate → `resolveMatchesFrom` per cascade naturale.
+  - `_onBombIconTapped()`: se aim mode attiva → cancel; se inventory=0 → shake + `powerup_unavailable`; altrimenti → `_enterBombAim()`.
+  - `_enterBombAim()`: setta `_bombAimMode=true`, disabilita shooter, tinta gialla sull'icona.
+  - `_exitBombAim()`: ripristina stato, nasconde cursore.
+  - `_detonateBomb(x,y)`: raccoglie marble nel raggio 150px via `forEachMarble` + distanza euclidea, chiama `consumePowerUp('bomb')`, `chain.removeNodes()`, particle burst rosso, poi `resolveMatchesFrom` dal nodo precedente per eventuali cascade.
+  - `_bombCursor` (Graphics depth 20) — aggiornato ogni frame in `update()` solo se `_bombAimMode=true`.
+  - `_bombAimMode` viene resettato a `false` in `create()` per gestire i restart di scena (Phaser riusa la stessa istanza).
+- **colorBlast / freeze / slingshot** — placeholder, handler `diag.log('button_pressed')` senza logica.
+
 ## Principi
 1. **Disaccoppiamento via EventBus**: gameplay, audio, UI, ads non si conoscono direttamente
 2. **State centralizzato**: `SaveManager` è l'unico writer su localStorage, mai scene singole

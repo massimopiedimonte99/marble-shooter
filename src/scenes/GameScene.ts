@@ -130,6 +130,12 @@ export class GameScene extends BaseScene {
     private _shelfRect!: Phaser.Geom.Rectangle;
     private _pauseRect!: Phaser.Geom.Rectangle;
 
+    // ── Bomb power-up ──────────────────────────────────────────────────────────
+    private _bombAimMode = false;
+    private _bombCursor!: Phaser.GameObjects.Graphics;
+    private _bombIcon!: Phaser.GameObjects.Image;
+    private _bombCountText!: Phaser.GameObjects.Text;
+
     // ─────────────────────────────────────────────────────────────────────────
     private readonly _onMatchHandler = (p: EventPayloads[GameEvent.Match]) => {
         const multi  = this._comboTracker.registerMatch(this.time.now);
@@ -170,6 +176,7 @@ export class GameScene extends BaseScene {
         this._frameN             = 0;
         this._score              = 0;
         this._flowOffset         = 0;
+        this._bombAimMode        = false;
         const POWERUP_SIZE    = 120;
         const POWERUP_SPACING = 110;
         const POWERUP_COUNT   = 4;
@@ -303,8 +310,25 @@ export class GameScene extends BaseScene {
             AssetKeys.ICON_POWERUP_FREEZE,
             AssetKeys.ICON_POWERUP_SLINGSHOT,
         ];
-        powerUps.forEach((key, i) => {
-            this.add.image(startX + i * POWERUP_SPACING, POWERUP_Y, key)
+
+        // Bomb — full implementation
+        this._bombIcon = this.add.image(startX, POWERUP_Y, AssetKeys.ICON_POWERUP_BOMB)
+            .setDisplaySize(POWERUP_SIZE, POWERUP_SIZE).setDepth(13)
+            .setInteractive({ useHandCursor: true });
+        this._bombIcon.on('pointerdown', () => this._onBombIconTapped());
+
+        const bombCount = saveManager.getInventory('bomb');
+        this._bombCountText = this.add.text(
+            startX + 35, POWERUP_Y - 35, String(bombCount),
+            { fontFamily: 'Arial Black', fontSize: '22px', color: '#ffffff',
+              stroke: '#000000', strokeThickness: 4 },
+        ).setOrigin(0.5).setDepth(14);
+
+        this._bombCursor = this.add.graphics().setDepth(20).setVisible(false);
+
+        // Remaining 3 power-ups — placeholder handlers
+        powerUps.slice(1).forEach((key, i) => {
+            this.add.image(startX + (i + 1) * POWERUP_SPACING, POWERUP_Y, key)
                 .setDisplaySize(POWERUP_SIZE, POWERUP_SIZE).setDepth(13)
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', () => diag.log('button_pressed', { id: key }));
@@ -338,7 +362,16 @@ export class GameScene extends BaseScene {
 
         this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
             if (this._ignoreNextPointerUp) { this._ignoreNextPointerUp = false; return; }
-            if (this._ended || !this.shooter.enabled) return;
+            if (this._ended) return;
+
+            if (this._bombAimMode) {
+                if (this._shelfRect.contains(pointer.x, pointer.y)) return;
+                if (this._pauseRect.contains(pointer.x, pointer.y)) return;
+                this._detonateBomb(pointer.x, pointer.y);
+                return;
+            }
+
+            if (!this.shooter.enabled) return;
             if (!this._pointerInAimZone(pointer)) return;
             const proj = this.projectilePool.acquire();
             if (!proj) return;
@@ -382,6 +415,16 @@ export class GameScene extends BaseScene {
     // ─────────────────────────────────────────────────────────────────────────
     update(_time: number, delta: number): void {
         if (this._ended) return;
+
+        if (this._bombAimMode) {
+            const p = this.input.activePointer;
+            this._bombCursor.clear();
+            this._bombCursor.lineStyle(4, 0xff3030, 0.9);
+            this._bombCursor.strokeCircle(p.x, p.y, 150);
+            this._bombCursor.fillStyle(0xff3030, 0.15);
+            this._bombCursor.fillCircle(p.x, p.y, 150);
+            this._bombCursor.setVisible(true);
+        }
 
         this.chain.update(_time, delta);
         const pointer = this.input.activePointer;
@@ -616,6 +659,79 @@ export class GameScene extends BaseScene {
                 previousHigh: previous,
             });
         });
+    }
+
+    // ── Bomb power-up handlers ─────────────────────────────────────────────────
+
+    private _onBombIconTapped(): void {
+        if (this._bombAimMode) {
+            this._exitBombAim();
+            diag.log('powerup_bomb_canceled', {});
+            return;
+        }
+        const inv = saveManager.getInventory('bomb');
+        if (inv <= 0) {
+            diag.log('powerup_unavailable', { id: 'bomb' });
+            this.tweens.add({
+                targets: this._bombIcon,
+                x: this._bombIcon.x + 4,
+                duration: 50, yoyo: true, repeat: 3,
+            });
+            return;
+        }
+        this._enterBombAim();
+    }
+
+    private _enterBombAim(): void {
+        this._bombAimMode = true;
+        this.shooter.setEnabled(false);
+        this._bombIcon.setTint(0xffcc00);
+        diag.log('powerup_bomb_aim_enter', {});
+    }
+
+    private _exitBombAim(): void {
+        this._bombAimMode = false;
+        this.shooter.setEnabled(true);
+        this._bombIcon.clearTint();
+        this._bombCursor.clear().setVisible(false);
+    }
+
+    private _detonateBomb(x: number, y: number): void {
+        const RADIUS_SQ = 150 * 150;
+        const victims: LinkedListNode<Marble>[] = [];
+
+        this.chain.forEachMarble((m) => {
+            if (!m.visible || !m.node) return;
+            const dx = m.trueX - x;
+            const dy = m.trueY - y;
+            if (dx * dx + dy * dy <= RADIUS_SQ) victims.push(m.node);
+        });
+
+        if (victims.length === 0) {
+            diag.log('powerup_bomb_dud', { x, y });
+            this._exitBombAim();
+            return;
+        }
+
+        saveManager.consumePowerUp('bomb');
+        const seedBefore = victims[0].prev;
+
+        this.chain.removeNodes(victims);
+
+        this._burstEmitter.setParticleTint(0xff4030);
+        this._burstEmitter.explode(50, x, y);
+
+        diag.log('powerup_bomb_detonated', { count: victims.length, x, y });
+
+        if (seedBefore?.value?.node) {
+            const result = this.chain.resolveMatchesFrom(seedBefore);
+            for (const g of result.groups) {
+                eventBus.emit(GameEvent.Match, { color: g.color, count: g.count, position: g.position });
+            }
+        }
+
+        this._bombCountText.setText(String(saveManager.getInventory('bomb')));
+        this._exitBombAim();
     }
 
     private _shutdown(): void {
