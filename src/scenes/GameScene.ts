@@ -281,7 +281,11 @@ export class GameScene extends BaseScene {
         const pauseBtn = this.add.image(GAME_WIDTH - 56, 56, AssetKeys.ICON_PAUSE)
             .setDisplaySize(64, 64).setDepth(16)
             .setInteractive({ useHandCursor: true });
-        pauseBtn.on('pointerdown', () => diag.log('button_pressed', { id: 'pause' }));
+        pauseBtn.on('pointerdown', () => {
+            diag.log('button_pressed', { id: 'pause' });
+            this.scene.pause();
+            this.scene.launch('Pause');
+        });
         this._pauseRect = pauseBtn.getBounds();
 
         // ── Power-up shelf ────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import { MenuScene } from '@/scenes/MenuScene';
 import { GameScene } from '@/scenes/GameScene';
 import { WinScene } from '@/scenes/WinScene';
 import { GameOverScene } from '@/scenes/GameOverScene';
+import { PauseScene } from '@/scenes/PauseScene';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
         mode: Scale.FIT,
         autoCenter: Scale.CENTER_BOTH,
     },
-    scene: [BootScene, PreloadScene, MenuScene, GameScene, WinScene, GameOverScene],
+    scene: [BootScene, PreloadScene, MenuScene, GameScene, WinScene, GameOverScene, PauseScene],
 };
 
 document.addEventListener('DOMContentLoaded', () => {
