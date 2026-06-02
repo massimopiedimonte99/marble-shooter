@@ -25,6 +25,13 @@ export class Shooter {
     private _recoil = 0;
     private _targetRecoil = 0;
 
+    // ── Bomb visual ────────────────────────────────────────────────────────────
+    private _bombMode = false;
+    private _bombDisplay?: GameObjects.Container;
+    private _bombGlowTween?: Phaser.Tweens.Tween;
+    private _bombPulseTween?: Phaser.Tweens.Tween;
+    private _bombFlickerEvent?: Phaser.Time.TimerEvent;
+
     constructor(scene: Phaser.Scene, x: number, y: number) {
         this._scene = scene;
         this.x = x;
@@ -60,6 +67,16 @@ export class Shooter {
 
     /** Draw the animated glow ring around the loaded marble. Call every frame. */
     drawGlow(time: number): void {
+        if (this._bombMode) {
+            // In bomb mode, clear the colored glow and let the bomb container handle visuals.
+            this._glowGfx.clear();
+            // Slowly rotate the bomb container
+            if (this._bombDisplay) {
+                this._bombDisplay.angle = (time * 0.04) % 360;
+            }
+            return;
+        }
+
         const mx = this._marbleDisplay.x;
         const my = this._marbleDisplay.y;
         const r  = MARBLE_RADIUS;
@@ -83,6 +100,128 @@ export class Shooter {
         // Thin colour ring
         this._glowGfx.lineStyle(2, color, 0.70);
         this._glowGfx.strokeCircle(mx, my, r + 7);
+    }
+
+    /** Switch the cannon to display a dark composite bomb marble (on=true) or restore the normal colored marble. */
+    setBombMode(on: boolean): void {
+        this._bombMode = on;
+        if (on) {
+            this._marbleDisplay.setVisible(false);
+            this._glowGfx.clear();
+            this._buildBombDisplay();
+            this._bombDisplay!.setVisible(true);
+        } else {
+            this._killBombVisuals();
+            this._bombDisplay?.setVisible(false);
+            this._marbleDisplay.setVisible(true);
+        }
+    }
+
+    isBombMode(): boolean { return this._bombMode; }
+
+    private _buildBombDisplay(): void {
+        const mx = this.x;
+        const my = this.y + MARBLE_DISPLAY_OFFSET_Y;
+        const r  = MARBLE_RADIUS;
+        const D  = r * 2;
+
+        // Build only once; reuse on subsequent calls
+        if (this._bombDisplay) {
+            this._bombDisplay.setVisible(true);
+            this._startBombTweens();
+            return;
+        }
+
+        // ── Base dark marble ────────────────────────────────────────────────────
+        const base = this._scene.add.image(0, 0, AssetKeys.MARBLE_MASTER)
+            .setDisplaySize(D, D)
+            .setTint(0x1a0a0a);
+
+        // ── Overlay graphics (dark disc + highlight stars + fuse) ───────────────
+        const overlay = this._scene.add.graphics();
+        // Dark semi-transparent disc
+        overlay.fillStyle(0x000000, 0.55);
+        overlay.fillCircle(0, 0, r * 0.85);
+        // 3 white highlight stars
+        const stars: [number, number][] = [[-r * 0.25, -r * 0.30], [r * 0.18, -r * 0.38], [-r * 0.10, r * 0.22]];
+        overlay.fillStyle(0xffffff, 0.85);
+        for (const [sx, sy] of stars) overlay.fillCircle(sx, sy, 3);
+        // Fuse line — up-right from top of marble
+        overlay.lineStyle(4, 0x8b5a2b, 1.0);
+        overlay.beginPath();
+        overlay.moveTo(r * 0.1, -r * 0.9);
+        overlay.lineTo(r * 0.55, -r * 1.4);
+        overlay.strokePath();
+
+        // ── Fuse flickering tip (two alternating Graphics objects) ──────────────
+        const flickA = this._scene.add.graphics();
+        flickA.fillStyle(0xffee22, 1.0);
+        flickA.fillCircle(r * 0.55, -r * 1.4, 5);
+        const flickB = this._scene.add.graphics();
+        flickB.fillStyle(0xff7700, 0.9);
+        flickB.fillCircle(r * 0.55, -r * 1.4, 4);
+        flickB.setVisible(false);
+        this._bombFlickerEvent = this._scene.time.addEvent({
+            delay: 80,
+            loop: true,
+            callback: () => {
+                if (!this._bombMode) return;
+                const vis = flickA.visible;
+                flickA.setVisible(!vis);
+                flickB.setVisible(vis);
+            },
+        });
+
+        // ── Glow ring ───────────────────────────────────────────────────────────
+        const glowRing = this._scene.add.graphics();
+        glowRing.lineStyle(5, 0xe87363, 0.6);
+        glowRing.strokeCircle(0, 0, r + 12);
+
+        // ── Container ───────────────────────────────────────────────────────────
+        this._bombDisplay = this._scene.add.container(mx, my, [base, overlay, flickA, flickB, glowRing])
+            .setDepth(6);
+
+        this._startBombTweens();
+    }
+
+    private _startBombTweens(): void {
+        if (!this._bombDisplay) return;
+
+        // Glow ring alpha pulse
+        const glowRing = this._bombDisplay.list[4] as GameObjects.Graphics;
+        this._bombGlowTween?.stop();
+        this._bombGlowTween = this._scene.tweens.add({
+            targets: glowRing,
+            alpha: { from: 0.35, to: 0.85 },
+            duration: 600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+
+        // Container scale pulse
+        this._bombPulseTween?.stop();
+        this._bombPulseTween = this._scene.tweens.add({
+            targets: this._bombDisplay,
+            scaleX: { from: 1.0, to: 1.06 },
+            scaleY: { from: 1.0, to: 1.06 },
+            duration: 600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+    }
+
+    private _killBombVisuals(): void {
+        this._bombGlowTween?.stop();
+        this._bombGlowTween = undefined;
+        this._bombPulseTween?.stop();
+        this._bombPulseTween = undefined;
+        this._bombFlickerEvent?.remove(false);
+        this._bombFlickerEvent = undefined;
+        if (this._bombDisplay) {
+            this._bombDisplay.setScale(1, 1);
+        }
     }
 
     get enabled(): boolean { return this._enabled; }

@@ -146,6 +146,77 @@ class SfxSynth {
             o.start(nt); o.stop(nt + 0.22);
         });
     }
+
+    // "whirr" — bomb charged into the cannon
+    bombCharge(): void {
+        const ctx = this._ctx_(); if (!ctx) return;
+        const t = ctx.currentTime;
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        const flt = ctx.createBiquadFilter();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(180, t);
+        o.frequency.linearRampToValueAtTime(420, t + 0.30);
+        flt.type = 'lowpass';
+        flt.frequency.setValueAtTime(600, t);
+        flt.frequency.linearRampToValueAtTime(2000, t + 0.30);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.18, t + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+        o.connect(flt); flt.connect(g); g.connect(ctx.destination);
+        o.start(t); o.stop(t + 0.32);
+    }
+
+    // "fzzz" — short fuse hiss on fire
+    bombFuse(): void {
+        const ctx = this._ctx_(); if (!ctx) return;
+        const t = ctx.currentTime;
+        const size = Math.ceil(ctx.sampleRate * 0.45);
+        const buf = ctx.createBuffer(1, size, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < size; i++) {
+            const env = 1 - i / size;
+            data[i] = (Math.random() * 2 - 1) * env * 0.6;
+        }
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const flt = ctx.createBiquadFilter();
+        flt.type = 'highpass'; flt.frequency.value = 2400; flt.Q.value = 0.7;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.18, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        src.connect(flt); flt.connect(g); g.connect(ctx.destination);
+        src.start(t);
+    }
+
+    // "BOOM" — bomb detonation: low kick + noise crack
+    bombDetonate(): void {
+        const ctx = this._ctx_(); if (!ctx) return;
+        const t = ctx.currentTime;
+        // Sub kick
+        const o = ctx.createOscillator(), og = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(160, t);
+        o.frequency.exponentialRampToValueAtTime(35, t + 0.22);
+        og.gain.setValueAtTime(0.55, t);
+        og.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+        o.connect(og); og.connect(ctx.destination);
+        o.start(t); o.stop(t + 0.6);
+        // Noise crack
+        const cracksz = Math.ceil(ctx.sampleRate * 0.6);
+        const crackbuf = ctx.createBuffer(1, cracksz, ctx.sampleRate);
+        const crackdata = crackbuf.getChannelData(0);
+        for (let i = 0; i < cracksz; i++) {
+            const env = Math.pow(1 - i / cracksz, 2);
+            crackdata[i] = (Math.random() * 2 - 1) * env;
+        }
+        const src = ctx.createBufferSource(); src.buffer = crackbuf;
+        const flt = ctx.createBiquadFilter();
+        flt.type = 'bandpass'; flt.frequency.value = 600; flt.Q.value = 0.8;
+        const ng = ctx.createGain();
+        ng.gain.setValueAtTime(0.4, t);
+        ng.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+        src.connect(flt); flt.connect(ng); ng.connect(ctx.destination);
+        src.start(t);
+    }
 }
 
 export const sfxSynth = new SfxSynth();

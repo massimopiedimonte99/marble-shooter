@@ -18,14 +18,17 @@ class AudioManager {
     play(key: AudioKeys): void {
         diag.log('audio_play', { key });
         switch (key) {
-            case AudioKeys.MARBLE_FIRE:    sfxSynth.fire();       break;
-            case AudioKeys.MARBLE_INSERT:  sfxSynth.insert();     break;
-            case AudioKeys.MATCH_3:        sfxSynth.match(3);     break;
-            case AudioKeys.MATCH_4:        sfxSynth.match(4);     break;
-            case AudioKeys.MATCH_COMBO:    sfxSynth.match(5);     break;
-            case AudioKeys.CHAIN_REACTION: sfxSynth.chainStep(1); break;
-            case AudioKeys.WIN:            sfxSynth.win();        break;
-            case AudioKeys.GAME_OVER:      sfxSynth.gameOver();   break;
+            case AudioKeys.MARBLE_FIRE:    sfxSynth.fire();           break;
+            case AudioKeys.MARBLE_INSERT:  sfxSynth.insert();         break;
+            case AudioKeys.MATCH_3:        sfxSynth.match(3);         break;
+            case AudioKeys.MATCH_4:        sfxSynth.match(4);         break;
+            case AudioKeys.MATCH_COMBO:    sfxSynth.match(5);         break;
+            case AudioKeys.CHAIN_REACTION: sfxSynth.chainStep(1);     break;
+            case AudioKeys.WIN:            sfxSynth.win();            break;
+            case AudioKeys.GAME_OVER:      sfxSynth.gameOver();       break;
+            case AudioKeys.BOMB_CHARGE:    sfxSynth.bombCharge();     break;
+            case AudioKeys.BOMB_FUSE:      sfxSynth.bombFuse();       break;
+            case AudioKeys.BOMB_DETONATE:  sfxSynth.bombDetonate();   break;
         }
     }
 
@@ -46,6 +49,9 @@ class AudioManager {
         });
         eventBus.on(GameEvent.LevelCompleted, () => sfxSynth.win());
         eventBus.on(GameEvent.GameOver, () => sfxSynth.gameOver());
+        eventBus.on(GameEvent.BombLoaded,  () => sfxSynth.bombCharge());
+        eventBus.on(GameEvent.BombFired,   () => sfxSynth.bombFuse());
+        eventBus.on(GameEvent.BombImpact,  () => sfxSynth.bombDetonate());
     }
 
     unbindEvents(): void {
@@ -56,6 +62,9 @@ class AudioManager {
         eventBus.off(GameEvent.ChainReaction);
         eventBus.off(GameEvent.LevelCompleted);
         eventBus.off(GameEvent.GameOver);
+        eventBus.off(GameEvent.BombLoaded);
+        eventBus.off(GameEvent.BombFired);
+        eventBus.off(GameEvent.BombImpact);
     }
 
     muteAll(): void { sfxSynth.setMuted(true); }

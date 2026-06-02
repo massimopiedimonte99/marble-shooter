@@ -21,6 +21,7 @@ export class ProjectilePool {
         p.vx = 0;
         p.vy = 0;
         p.lifeMs = 0;
+        p.isBomb = false;
     }
 
     forEachAlive(cb: (p: Projectile) => void): void {

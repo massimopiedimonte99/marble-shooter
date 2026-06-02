@@ -11,6 +11,11 @@ export enum GameEvent {
     ChainEmpty = 'chainEmpty',
     LevelCompleted = 'levelCompleted',
     GameOver = 'gameOver',
+    // ── Bomb power-up ──────────────────────────────────────────────────────────
+    BombLoaded   = 'bomb:loaded',
+    BombUnloaded = 'bomb:unloaded',
+    BombFired    = 'bomb:fired',
+    BombImpact   = 'bomb:impact',
 }
 
 export interface EventPayloads {
@@ -23,4 +28,8 @@ export interface EventPayloads {
     [GameEvent.ChainEmpty]: Record<string, never>;
     [GameEvent.LevelCompleted]: { chainStepsTotal?: number };
     [GameEvent.GameOver]: { chainLengthAtDeath: number };
+    [GameEvent.BombLoaded]:   Record<string, never>;
+    [GameEvent.BombUnloaded]: { reason: 'user_toggle' | 'scene_end' };
+    [GameEvent.BombFired]:    Record<string, never>;
+    [GameEvent.BombImpact]:   { x: number; y: number; marble: Marble };
 }

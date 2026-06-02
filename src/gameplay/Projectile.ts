@@ -6,4 +6,5 @@ export class Projectile {
     vy = 0;
     alive = false;
     lifeMs = 0;
+    isBomb = false;
 }

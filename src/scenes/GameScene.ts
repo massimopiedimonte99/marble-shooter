@@ -17,6 +17,7 @@ import { ProjectilePool } from '@/pool/ProjectilePool';
 import { CollisionResolver } from '@/gameplay/CollisionResolver';
 import { AimGuide } from '@/gameplay/AimGuide';
 import { ComboTracker } from '@/gameplay/ComboTracker';
+import { BombController } from '@/gameplay/BombController';
 import { ScreenEffects } from '@/utils/ScreenEffects';
 import { diag } from '@/utils/DiagLogger';
 import { eventBus } from '@/events/EventBus';
@@ -131,10 +132,11 @@ export class GameScene extends BaseScene {
     private _pauseRect!: Phaser.Geom.Rectangle;
 
     // ── Bomb power-up ──────────────────────────────────────────────────────────
-    private _bombAimMode = false;
-    private _bombCursor!: Phaser.GameObjects.Graphics;
     private _bombIcon!: Phaser.GameObjects.Image;
-    private _bombCountText!: Phaser.GameObjects.Text;
+    private _bombBadge!: Phaser.GameObjects.Container;
+    private _bombBadgeText!: Phaser.GameObjects.Text;
+    private _bombTrailEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+    private _bombCtrl!: BombController;
 
     // ─────────────────────────────────────────────────────────────────────────
     private readonly _onMatchHandler = (p: EventPayloads[GameEvent.Match]) => {
@@ -176,7 +178,6 @@ export class GameScene extends BaseScene {
         this._frameN             = 0;
         this._score              = 0;
         this._flowOffset         = 0;
-        this._bombAimMode        = false;
         const POWERUP_SIZE    = 120;
         const POWERUP_SPACING = 110;
         const POWERUP_COUNT   = 4;
@@ -258,6 +259,17 @@ export class GameScene extends BaseScene {
             blendMode: 'ADD',
         }).setDepth(15);
 
+        // Bomb trail — warm fire tints, soft and short-lived
+        this._bombTrailEmitter = this.add.particles(0, 0, AssetKeys.PARTICLE_CIRCLE, {
+            lifespan: 220,
+            speed: { min: 30, max: 80 },
+            scale: { start: 0.06, end: 0 },
+            alpha: { start: 0.85, end: 0 },
+            tint: [0xff4d6d, 0xff8c4d, 0xffd84d],
+            emitting: false,
+            blendMode: 'ADD',
+        }).setDepth(15);
+
         // ── Score HUD ─────────────────────────────────────────────────────────────
         const SCORE_Y = 50;
         const scoreBg = this.add.graphics().setDepth(15);
@@ -311,20 +323,34 @@ export class GameScene extends BaseScene {
             AssetKeys.ICON_POWERUP_SLINGSHOT,
         ];
 
-        // Bomb — full implementation
+        // Bomb — fire-and-detonate paradigm
         this._bombIcon = this.add.image(startX, POWERUP_Y, AssetKeys.ICON_POWERUP_BOMB)
             .setDisplaySize(POWERUP_SIZE, POWERUP_SIZE).setDepth(13)
             .setInteractive({ useHandCursor: true });
-        this._bombIcon.on('pointerdown', () => this._onBombIconTapped());
 
-        const bombCount = saveManager.getInventory('bomb');
-        this._bombCountText = this.add.text(
-            startX + 35, POWERUP_Y - 35, String(bombCount),
-            { fontFamily: 'Arial Black', fontSize: '22px', color: '#ffffff',
-              stroke: '#000000', strokeThickness: 4 },
-        ).setOrigin(0.5).setDepth(14);
+        // ── Inventory badge: dark disc + "×N" text, top-right of icon ───────────
+        const badgeGfx = this.add.graphics();
+        badgeGfx.fillStyle(0x2d4f5c, 0.95);
+        badgeGfx.fillCircle(0, 0, 16);
+        this._bombBadgeText = this.add.text(0, 0, '×1', {
+            fontFamily: 'Arial Black', fontSize: '16px', color: '#ffffff',
+        }).setOrigin(0.5);
+        this._bombBadge = this.add.container(startX + 38, POWERUP_Y - 38, [badgeGfx, this._bombBadgeText])
+            .setDepth(14);
 
-        this._bombCursor = this.add.graphics().setDepth(20).setVisible(false);
+        // BombController wires up setBombMode and icon glow
+        this._bombCtrl = new BombController(this, this.shooter, this._bombIcon);
+
+        this._bombIcon.on('pointerdown', () => {
+            if (saveManager.getInventory('bomb') <= 0 && !this._bombCtrl.isLoaded) {
+                diag.log('button_pressed', { id: 'bomb', result: 'empty' });
+                return;
+            }
+            if (this._bombCtrl.isLoaded) this._bombCtrl.unload('user_toggle');
+            else this._bombCtrl.load();
+        });
+
+        this._refreshBombBadge();
 
         // Remaining 3 power-ups — placeholder handlers
         powerUps.slice(1).forEach((key, i) => {
@@ -363,34 +389,39 @@ export class GameScene extends BaseScene {
         this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
             if (this._ignoreNextPointerUp) { this._ignoreNextPointerUp = false; return; }
             if (this._ended) return;
-
-            if (this._bombAimMode) {
-                if (this._shelfRect.contains(pointer.x, pointer.y)) return;
-                if (this._pauseRect.contains(pointer.x, pointer.y)) return;
-                this._detonateBomb(pointer.x, pointer.y);
-                return;
-            }
-
             if (!this.shooter.enabled) return;
             if (!this._pointerInAimZone(pointer)) return;
+
             const proj = this.projectilePool.acquire();
             if (!proj) return;
             const color  = this.shooter.getNextColor();
             const marble = this.marblePool.acquire(color, this.shooter.x, this.shooter.y);
             if (!marble) { this.projectilePool.release(proj); return; }
-            this.shooter.consumeAndRoll();
+
+            const isFiringBomb = this._bombCtrl.isLoaded;
+            if (isFiringBomb) {
+                // Bomb: mark projectile, tint marble dark, consume via commitFire (no color advance)
+                proj.isBomb = true;
+                marble.setTint(0x1a0a0a);
+                this._bombCtrl.commitFire();
+                this._refreshBombBadge();
+            } else {
+                this.shooter.consumeAndRoll();
+            }
+
             proj.marble = marble;
             const dx = pointer.x - this.shooter.x;
             const dy = pointer.y - this.shooter.y;
             const len = Math.hypot(dx, dy) || 1;
             proj.vx = (dx / len) * PROJECTILE_SPEED;
             proj.vy = (dy / len) * PROJECTILE_SPEED;
-            eventBus.emit(GameEvent.ProjectileFired, { color });
+            if (!isFiringBomb) eventBus.emit(GameEvent.ProjectileFired, { color });
         });
 
         audioManager.bindEvents();
         eventBus.on(GameEvent.Match, this._onMatchHandler);
         eventBus.on(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
+        eventBus.on(GameEvent.BombImpact, this._onBombImpactHandler);
         this.events.on('shutdown', this._shutdown, this);
 
         if (import.meta.env.DEV) {
@@ -407,6 +438,13 @@ export class GameScene extends BaseScene {
                 this._chainEverPopulated = colors.length > 0;
             };
             (window as any).__disableShooter = (v = true) => this.shooter.setEnabled(!v);
+            (window as any).__bomb = {
+                load:      () => this._bombCtrl.load(),
+                unload:    () => this._bombCtrl.unload('user_toggle'),
+                isLoaded:  () => this._bombCtrl.isLoaded,
+                inventory: () => saveManager.getInventory('bomb'),
+                grant:     (n = 1) => { saveManager.grantPowerUp('bomb', n); this._refreshBombBadge(); },
+            };
         }
 
         diag.log('game_reset', { chainLen: this.chain.length });
@@ -415,16 +453,6 @@ export class GameScene extends BaseScene {
     // ─────────────────────────────────────────────────────────────────────────
     update(_time: number, delta: number): void {
         if (this._ended) return;
-
-        if (this._bombAimMode) {
-            const p = this.input.activePointer;
-            this._bombCursor.clear();
-            this._bombCursor.lineStyle(4, 0xff3030, 0.9);
-            this._bombCursor.strokeCircle(p.x, p.y, 150);
-            this._bombCursor.fillStyle(0xff3030, 0.15);
-            this._bombCursor.fillCircle(p.x, p.y, 150);
-            this._bombCursor.setVisible(true);
-        }
 
         this.chain.update(_time, delta);
         const pointer = this.input.activePointer;
@@ -439,9 +467,12 @@ export class GameScene extends BaseScene {
             m.x += p.vx * delta;
             m.y += p.vy * delta;
             p.lifeMs += delta;
+            // Bomb trail
+            if (p.isBomb) this._bombTrailEmitter.emitParticleAt(m.x, m.y, 1);
             const oob = m.x < -32 || m.x > GAME_WIDTH + 32 || m.y < -32 || m.y > GAME_HEIGHT + 32;
             if (p.lifeMs > PROJECTILE_MAX_LIFETIME_MS || oob) {
                 this.marblePool.release(m); p.marble = null; this.projectilePool.release(p);
+                diag.log('projectile_release', { reason: oob ? 'oob' : 'lifetime' });
             }
         });
         this.resolver.update();
@@ -639,6 +670,7 @@ export class GameScene extends BaseScene {
 
     private _endRun(target: 'Win' | 'GameOver'): void {
         this._ended = true;
+        if (this._bombCtrl?.isLoaded) this._bombCtrl.unload('scene_end');
         this._spawnTimer?.remove(false);
         this._holdTimer?.remove(false);
         this._holdTimer = undefined;
@@ -663,84 +695,108 @@ export class GameScene extends BaseScene {
 
     // ── Bomb power-up handlers ─────────────────────────────────────────────────
 
-    private _onBombIconTapped(): void {
-        if (this._bombAimMode) {
-            this._exitBombAim();
-            diag.log('powerup_bomb_canceled', {});
-            return;
-        }
-        const inv = saveManager.getInventory('bomb');
-        if (inv <= 0) {
-            diag.log('powerup_unavailable', { id: 'bomb' });
-            this.tweens.add({
-                targets: this._bombIcon,
-                x: this._bombIcon.x + 4,
-                duration: 50, yoyo: true, repeat: 3,
-            });
-            return;
-        }
-        this._enterBombAim();
-    }
-
-    private _enterBombAim(): void {
-        this._bombAimMode = true;
-        this.shooter.setEnabled(false);
-        this._bombIcon.setTint(0xffcc00);
-        diag.log('powerup_bomb_aim_enter', {});
-    }
-
-    private _exitBombAim(): void {
-        this._bombAimMode = false;
-        this.shooter.setEnabled(true);
-        this._bombIcon.clearTint();
-        this._bombCursor.clear().setVisible(false);
-    }
-
-    private _detonateBomb(x: number, y: number): void {
+    /** Fired when CollisionResolver detects a bomb projectile touching the chain. */
+    private readonly _onBombImpactHandler = (payload: EventPayloads[GameEvent.BombImpact]) => {
+        const { x: ix, y: iy, marble: bombMarble } = payload;
         const RADIUS_SQ = 150 * 150;
-        const victims: LinkedListNode<Marble>[] = [];
 
+        // Release the bomb projectile marble (visual disappears)
+        if (bombMarble) this.marblePool.release(bombMarble);
+
+        // Collect chain nodes in detonation radius
+        const victims: LinkedListNode<Marble>[] = [];
         this.chain.forEachMarble((m) => {
             if (!m.visible || !m.node) return;
-            const dx = m.trueX - x;
-            const dy = m.trueY - y;
+            const dx = m.trueX - ix;
+            const dy = m.trueY - iy;
             if (dx * dx + dy * dy <= RADIUS_SQ) victims.push(m.node);
         });
 
+        // Always spawn VFX at impact point
+        this._spawnShockwave(ix, iy);
+        this._fx.shake(8, 180);
+        this._burstEmitter.setParticleTint(0xff4030);
+        this._burstEmitter.explode(50, ix, iy);
+
         if (victims.length === 0) {
-            diag.log('powerup_bomb_dud', { x, y });
-            this._exitBombAim();
+            diag.log('powerup_bomb_impact', { x: ix, y: iy, removed: 0 });
             return;
         }
 
-        saveManager.consumePowerUp('bomb');
+        // Capture seed neighbour BEFORE removal (for cascade resolution)
         const seedBefore = victims[0].prev;
+        const popTargets = victims.map(n => n.value);
+        const D = MARBLE_RADIUS * 2;
 
-        this.chain.removeNodes(victims);
+        // Freeze chain during pop animation
+        this.chain.frozen = true;
 
-        this._burstEmitter.setParticleTint(0xff4030);
-        this._burstEmitter.explode(50, x, y);
+        // Scale-pop + fade out marbles in range, THEN remove nodes
+        this.tweens.add({
+            targets: popTargets,
+            displayWidth: D * 1.3,
+            displayHeight: D * 1.3,
+            alpha: 0,
+            duration: 120,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+                this.chain.removeNodes(victims);
+                this.chain.retractHead(victims.length);
 
-        diag.log('powerup_bomb_detonated', { count: victims.length, x, y });
+                if (seedBefore?.value?.node) {
+                    // Route through _runMatchSequence for proper freeze/settle/recoil
+                    this._runMatchSequence(seedBefore);
+                } else {
+                    // No cascade — settle remaining marbles then unfreeze
+                    const remaining: Marble[] = [];
+                    this.chain.forEachMarble(m => { m.beginSettle(m.x, m.y); remaining.push(m); });
+                    this.tweens.add({
+                        targets: remaining,
+                        settleT: 0,
+                        duration: 200,
+                        ease: 'Quad.easeOut',
+                        onComplete: () => { if (!this._ended) this.chain.frozen = false; },
+                    });
+                }
 
-        if (seedBefore?.value?.node) {
-            const result = this.chain.resolveMatchesFrom(seedBefore);
-            for (const g of result.groups) {
-                eventBus.emit(GameEvent.Match, { color: g.color, count: g.count, position: g.position });
-            }
+                diag.log('powerup_bomb_impact', { x: ix, y: iy, removed: victims.length });
+            },
+        });
+    };
+
+    private _refreshBombBadge(): void {
+        const inv = saveManager.getInventory('bomb');
+        if (inv <= 0) {
+            this._bombIcon.setAlpha(0.45);
+            this._bombBadge.setVisible(false);
+        } else {
+            this._bombIcon.setAlpha(1);
+            this._bombBadgeText.setText(`×${inv}`);
+            this._bombBadge.setVisible(true);
         }
+    }
 
-        this._bombCountText.setText(String(saveManager.getInventory('bomb')));
-        this._exitBombAim();
+    private _spawnShockwave(x: number, y: number): void {
+        const ring = this.add.graphics().setDepth(18).setPosition(x, y);
+        ring.lineStyle(6, 0xff4d6d, 0.9);
+        ring.strokeCircle(0, 0, 1);
+        this.tweens.add({
+            targets: ring,
+            scaleX: 150, scaleY: 150, alpha: 0,
+            duration: 280, ease: 'Cubic.easeOut',
+            onComplete: () => ring.destroy(),
+        });
     }
 
     private _shutdown(): void {
         eventBus.off(GameEvent.Match, this._onMatchHandler);
         eventBus.off(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
+        eventBus.off(GameEvent.BombImpact, this._onBombImpactHandler);
         this._holdTimer?.remove(false);
         if (import.meta.env.DEV) {
             delete (window as any).__forceChainState;
             delete (window as any).__disableShooter;
+            delete (window as any).__bomb;
         }
     }
 }

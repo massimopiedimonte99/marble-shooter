@@ -7,4 +7,7 @@ export enum AudioKeys {
     CHAIN_REACTION = 'CHAIN_REACTION',
     WIN            = 'WIN',
     GAME_OVER      = 'GAME_OVER',
+    BOMB_CHARGE    = 'BOMB_CHARGE',
+    BOMB_FUSE      = 'BOMB_FUSE',
+    BOMB_DETONATE  = 'BOMB_DETONATE',
 }
