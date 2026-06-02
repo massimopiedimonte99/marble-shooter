@@ -264,9 +264,13 @@ export class Shooter {
      * always targets a colour still present in the chain.
      */
     setColorPool(pool: MarbleColor[]): void {
+        // Only reroll the current marble when its colour WAS in the pool before and
+        // then disappeared (chain lost that colour). Never reroll during initial build-up
+        // (where _currentColor was rolled before the chain existed) — that would cause a
+        // visible colour flash at scene start.
+        const wasPresent = this._colorPool.includes(this._currentColor);
         this._colorPool = pool;
-        // If the marble currently in the cannon is no longer in the chain, reroll it
-        if (pool.length > 0 && !pool.includes(this._currentColor)) {
+        if (pool.length > 0 && wasPresent && !pool.includes(this._currentColor)) {
             this._currentColor = this._rollColor();
             this._marbleDisplay.setTint(MARBLE_COLOR_HEX[this._currentColor]);
         }
