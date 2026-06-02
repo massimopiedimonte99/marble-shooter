@@ -25,6 +25,9 @@ export class Shooter {
     private _recoil = 0;
     private _targetRecoil = 0;
 
+    /** Colors currently present in the chain; empty = unconstrained */
+    private _colorPool: MarbleColor[] = [];
+
     // ── Bomb visual ────────────────────────────────────────────────────────────
     private _bombMode = false;
     private _bombDisplay?: GameObjects.Container;
@@ -256,7 +259,22 @@ export class Shooter {
         this._marbleDisplay.setTint(MARBLE_COLOR_HEX[color]);
     }
 
+    /**
+     * Call whenever the chain's color composition changes so the next shot
+     * always targets a colour still present in the chain.
+     */
+    setColorPool(pool: MarbleColor[]): void {
+        this._colorPool = pool;
+        // If the marble currently in the cannon is no longer in the chain, reroll it
+        if (pool.length > 0 && !pool.includes(this._currentColor)) {
+            this._currentColor = this._rollColor();
+            this._marbleDisplay.setTint(MARBLE_COLOR_HEX[this._currentColor]);
+        }
+    }
+
     private _rollColor(): MarbleColor {
+        const pool = this._colorPool;
+        if (pool.length > 0) return pool[Math.floor(Math.random() * pool.length)];
         return Math.floor(Math.random() * MARBLE_COLOR_COUNT) as MarbleColor;
     }
 }

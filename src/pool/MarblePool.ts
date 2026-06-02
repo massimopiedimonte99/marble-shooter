@@ -22,6 +22,7 @@ export class MarblePool {
         // tween di settle/pop o uno scostamento residuo.
         this.scene.tweens.killTweensOf(m);
         m.settleT = 0;
+        m.setAlpha(1);
         m.setDisplaySize(MARBLE_RADIUS * 2, MARBLE_RADIUS * 2);
         m.setActive(true).setVisible(true);
         m.setPosition(x, y);

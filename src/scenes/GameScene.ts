@@ -525,6 +525,13 @@ export class GameScene extends BaseScene {
             this._bombRadiusGfx.clear();
         }
 
+        // ── Sync shooter color pool to chain (ensures no wasted shots) ────────────
+        const chainColors: MarbleColor[] = [];
+        this.chain.forEachMarble(m => {
+            if (m.visible && !chainColors.includes(m.marbleColor)) chainColors.push(m.marbleColor);
+        });
+        this.shooter.setColorPool(chainColors);
+
         // ── Aim guide ──────────────────────────────────────────────────────────────
         const bombLoaded = this._bombCtrl.isLoaded;
         const colorHex = bombLoaded ? 0x1a0a0a : MARBLE_COLOR_HEX[this.shooter.getNextColor()];
