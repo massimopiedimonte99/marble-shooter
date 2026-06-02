@@ -29,6 +29,7 @@ import { saveManager } from '@/state/SaveManager';
 const INSERT_SETTLE_MS = 90;
 const MATCH_HOLD_MS    = 120;
 const RECOIL_MS        = 200;
+const BOMB_RADIUS      = 100;
 
 const COIN_REWARD: Record<number, number> = { 3: 10, 4: 50, 5: 100, 6: 200 };
 const coinReward = (count: number): number => COIN_REWARD[count] ?? count * 50;
@@ -136,6 +137,7 @@ export class GameScene extends BaseScene {
     private _bombBadge!: Phaser.GameObjects.Container;
     private _bombBadgeText!: Phaser.GameObjects.Text;
     private _bombTrailEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+    private _bombRadiusGfx!: Phaser.GameObjects.Graphics;
     private _bombCtrl!: BombController;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -258,6 +260,9 @@ export class GameScene extends BaseScene {
             emitting: false,
             blendMode: 'ADD',
         }).setDepth(15);
+
+        // Bomb radius overlay (drawn in update when bomb is loaded)
+        this._bombRadiusGfx = this.add.graphics().setDepth(20);
 
         // Bomb trail — warm fire tints, soft and short-lived
         this._bombTrailEmitter = this.add.particles(0, 0, AssetKeys.PARTICLE_CIRCLE, {
@@ -509,8 +514,20 @@ export class GameScene extends BaseScene {
         }
         this._flowOffset = (this._flowOffset + 0.00011 * delta) % 1;
 
+        // ── Bomb radius overlay ────────────────────────────────────────────────────
+        if (this._bombCtrl.isLoaded) {
+            this._bombRadiusGfx.clear();
+            this._bombRadiusGfx.lineStyle(3, 0x1a0a0a, 0.85);
+            this._bombRadiusGfx.strokeCircle(pointer.x, pointer.y, BOMB_RADIUS);
+            this._bombRadiusGfx.fillStyle(0x000000, 0.12);
+            this._bombRadiusGfx.fillCircle(pointer.x, pointer.y, BOMB_RADIUS);
+        } else {
+            this._bombRadiusGfx.clear();
+        }
+
         // ── Aim guide ──────────────────────────────────────────────────────────────
-        const colorHex = MARBLE_COLOR_HEX[this.shooter.getNextColor()];
+        const bombLoaded = this._bombCtrl.isLoaded;
+        const colorHex = bombLoaded ? 0x1a0a0a : MARBLE_COLOR_HEX[this.shooter.getNextColor()];
         this._aimGuide.update(pointer, this.shooter.x, this.shooter.y, colorHex, delta, inAim);
 
         // ── Win / lose ─────────────────────────────────────────────────────────────
@@ -698,7 +715,7 @@ export class GameScene extends BaseScene {
     /** Fired when CollisionResolver detects a bomb projectile touching the chain. */
     private readonly _onBombImpactHandler = (payload: EventPayloads[GameEvent.BombImpact]) => {
         const { x: ix, y: iy, marble: bombMarble } = payload;
-        const RADIUS_SQ = 150 * 150;
+        const RADIUS_SQ = BOMB_RADIUS * BOMB_RADIUS;
 
         // Release the bomb projectile marble (visual disappears)
         if (bombMarble) this.marblePool.release(bombMarble);
@@ -744,19 +761,24 @@ export class GameScene extends BaseScene {
                 this.chain.retractHead(victims.length);
 
                 if (seedBefore?.value?.node) {
-                    // Route through _runMatchSequence for proper freeze/settle/recoil
+                    // _runMatchSequence guards against frozen — unfreeze first, it re-freezes internally
+                    this.chain.frozen = false;
                     this._runMatchSequence(seedBefore);
                 } else {
                     // No cascade — settle remaining marbles then unfreeze
                     const remaining: Marble[] = [];
                     this.chain.forEachMarble(m => { m.beginSettle(m.x, m.y); remaining.push(m); });
-                    this.tweens.add({
-                        targets: remaining,
-                        settleT: 0,
-                        duration: 200,
-                        ease: 'Quad.easeOut',
-                        onComplete: () => { if (!this._ended) this.chain.frozen = false; },
-                    });
+                    if (remaining.length === 0) {
+                        if (!this._ended) this.chain.frozen = false;
+                    } else {
+                        this.tweens.add({
+                            targets: remaining,
+                            settleT: 0,
+                            duration: 200,
+                            ease: 'Quad.easeOut',
+                            onComplete: () => { if (!this._ended) this.chain.frozen = false; },
+                        });
+                    }
                 }
 
                 diag.log('powerup_bomb_impact', { x: ix, y: iy, removed: victims.length });
