@@ -466,11 +466,8 @@ export class GameScene extends BaseScene {
             m.x += p.vx * delta;
             m.y += p.vy * delta;
             p.lifeMs += delta;
-            // Bomb: rainbow tint matching the cannon display, plus trail
-            if (p.isBomb) {
-                m.setTint(hslToHex((_time * 0.0005) % 1, 1.0, 0.55));
-                this._bombTrailEmitter.emitParticleAt(m.x, m.y, 1);
-            }
+            // Bomb: same rainbow tint as the cannon display marble
+            if (p.isBomb) m.setTint(hslToHex((_time * 0.0005) % 1, 1.0, 0.55));
             const oob = m.x < -32 || m.x > GAME_WIDTH + 32 || m.y < -32 || m.y > GAME_HEIGHT + 32;
             if (p.lifeMs > PROJECTILE_MAX_LIFETIME_MS || oob) {
                 this.marblePool.release(m); p.marble = null; this.projectilePool.release(p);
@@ -719,19 +716,15 @@ export class GameScene extends BaseScene {
 
         this.chain.frozen = true;
 
-        // Orange charge flash + grow
+        // Scale-grow only — marble keeps its rainbow look until detonation
         this.tweens.killTweensOf(bombMarble);
-        bombMarble.setTint(0xff6600);
         this.tweens.add({
             targets: bombMarble,
-            displayWidth: D * 1.5,
-            displayHeight: D * 1.5,
+            displayWidth: D * 1.4,
+            displayHeight: D * 1.4,
             duration: CHARGE_MS,
             ease: 'Quad.easeOut',
-            onComplete: () => {
-                bombMarble.setTint(0xffffff);
-                this.time.delayedCall(40, () => this._detonateFromChain(bombMarble, ix, iy));
-            },
+            onComplete: () => this.time.delayedCall(30, () => this._detonateFromChain(bombMarble, ix, iy)),
         });
     };
 
