@@ -710,22 +710,9 @@ export class GameScene extends BaseScene {
     private readonly _onBombInsertedHandler = (payload: EventPayloads[GameEvent.BombInserted]) => {
         const { marble: bombMarble, centerX: ix, centerY: iy } = payload;
         if (this._ended) return;
-
-        const CHARGE_MS = 180;
-        const D = MARBLE_RADIUS * 2;
-
         this.chain.frozen = true;
-
-        // Scale-grow only — marble keeps its rainbow look until detonation
-        this.tweens.killTweensOf(bombMarble);
-        this.tweens.add({
-            targets: bombMarble,
-            displayWidth: D * 1.4,
-            displayHeight: D * 1.4,
-            duration: CHARGE_MS,
-            ease: 'Quad.easeOut',
-            onComplete: () => this.time.delayedCall(30, () => this._detonateFromChain(bombMarble, ix, iy)),
-        });
+        // Brief pause — marble sits in chain visually unchanged, then detonates
+        this.time.delayedCall(80, () => this._detonateFromChain(bombMarble, ix, iy));
     };
 
     private _detonateFromChain(bombMarble: Marble, ix: number, iy: number): void {
