@@ -3,7 +3,7 @@ import { MARBLE_RADIUS } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { MarbleColor, MARBLE_COLOR_COUNT, MARBLE_COLOR_HEX } from '@/gameplay/MarbleColor';
 
-function hslToHex(h: number, s: number, l: number): number {
+export function hslToHex(h: number, s: number, l: number): number {
     const c = (1 - Math.abs(2 * l - 1)) * s;
     const x = c * (1 - Math.abs((h * 6) % 2 - 1));
     const m = l - c / 2;

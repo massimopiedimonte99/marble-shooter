@@ -12,7 +12,7 @@ import { MatchDetector } from '@/gameplay/MatchDetector';
 import type { LinkedListNode } from '@/gameplay/MarbleChain';
 import { MarblePool } from '@/pool/MarblePool';
 import { MarbleChain } from '@/gameplay/MarbleChain';
-import { Shooter } from '@/gameplay/Shooter';
+import { Shooter, hslToHex } from '@/gameplay/Shooter';
 import { ProjectilePool } from '@/pool/ProjectilePool';
 import { CollisionResolver } from '@/gameplay/CollisionResolver';
 import { AimGuide } from '@/gameplay/AimGuide';
@@ -137,7 +137,6 @@ export class GameScene extends BaseScene {
     private _bombBadge!: Phaser.GameObjects.Container;
     private _bombBadgeText!: Phaser.GameObjects.Text;
     private _bombTrailEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
-    private _bombRadiusGfx!: Phaser.GameObjects.Graphics;
     private _bombCtrl!: BombController;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -260,9 +259,6 @@ export class GameScene extends BaseScene {
             emitting: false,
             blendMode: 'ADD',
         }).setDepth(15);
-
-        // Bomb radius overlay (drawn in update when bomb is loaded)
-        this._bombRadiusGfx = this.add.graphics().setDepth(20);
 
         // Bomb trail — warm fire tints, soft and short-lived
         this._bombTrailEmitter = this.add.particles(0, 0, AssetKeys.PARTICLE_CIRCLE, {
@@ -405,9 +401,7 @@ export class GameScene extends BaseScene {
 
             const isFiringBomb = this._bombCtrl.isLoaded;
             if (isFiringBomb) {
-                // Bomb: mark projectile, tint marble dark, consume via commitFire (no color advance)
                 proj.isBomb = true;
-                marble.setTint(0x1a0a0a);
                 this._bombCtrl.commitFire();
                 this._refreshBombBadge();
             } else {
@@ -472,8 +466,11 @@ export class GameScene extends BaseScene {
             m.x += p.vx * delta;
             m.y += p.vy * delta;
             p.lifeMs += delta;
-            // Bomb trail
-            if (p.isBomb) this._bombTrailEmitter.emitParticleAt(m.x, m.y, 1);
+            // Bomb: rainbow tint matching the cannon display, plus trail
+            if (p.isBomb) {
+                m.setTint(hslToHex((_time * 0.0005) % 1, 1.0, 0.55));
+                this._bombTrailEmitter.emitParticleAt(m.x, m.y, 1);
+            }
             const oob = m.x < -32 || m.x > GAME_WIDTH + 32 || m.y < -32 || m.y > GAME_HEIGHT + 32;
             if (p.lifeMs > PROJECTILE_MAX_LIFETIME_MS || oob) {
                 this.marblePool.release(m); p.marble = null; this.projectilePool.release(p);
@@ -514,17 +511,6 @@ export class GameScene extends BaseScene {
         }
         this._flowOffset = (this._flowOffset + 0.00011 * delta) % 1;
 
-        // ── Bomb radius overlay ────────────────────────────────────────────────────
-        if (this._bombCtrl.isLoaded) {
-            this._bombRadiusGfx.clear();
-            this._bombRadiusGfx.lineStyle(3, 0x1a0a0a, 0.85);
-            this._bombRadiusGfx.strokeCircle(pointer.x, pointer.y, BOMB_RADIUS);
-            this._bombRadiusGfx.fillStyle(0x000000, 0.12);
-            this._bombRadiusGfx.fillCircle(pointer.x, pointer.y, BOMB_RADIUS);
-        } else {
-            this._bombRadiusGfx.clear();
-        }
-
         // ── Sync shooter color pool to chain (ensures no wasted shots) ────────────
         const chainColors: MarbleColor[] = [];
         this.chain.forEachMarble(m => {
@@ -533,8 +519,9 @@ export class GameScene extends BaseScene {
         this.shooter.setColorPool(chainColors);
 
         // ── Aim guide ──────────────────────────────────────────────────────────────
-        const bombLoaded = this._bombCtrl.isLoaded;
-        const colorHex = bombLoaded ? 0x1a0a0a : MARBLE_COLOR_HEX[this.shooter.getNextColor()];
+        const colorHex = this._bombCtrl.isLoaded
+            ? hslToHex((_time * 0.0005) % 1, 1.0, 0.55)
+            : MARBLE_COLOR_HEX[this.shooter.getNextColor()];
         this._aimGuide.update(pointer, this.shooter.x, this.shooter.y, colorHex, delta, inAim);
 
         // ── Win / lose ─────────────────────────────────────────────────────────────
@@ -755,12 +742,11 @@ export class GameScene extends BaseScene {
         const D = MARBLE_RADIUS * 2;
 
         // ── VFX ────────────────────────────────────────────────────────────────
-        this._spawnCartoonStarburst(ix, iy);
+        this._spawnExplosionVFX(ix, iy);
         this._spawnShockwave(ix, iy);
-        this._fx.shake(12, 220);
-        this._burstEmitter.setParticleTint(0xff8800);
-        this._burstEmitter.explode(60, ix, iy);
-        this._bombTrailEmitter.explode(20, ix, iy);
+        this._fx.shake(10, 200);
+        this._burstEmitter.setParticleTint(0xffdd00);
+        this._burstEmitter.explode(18, ix, iy);
         // Emit BombImpact so AudioManager plays the detonate SFX
         eventBus.emit(GameEvent.BombImpact, { x: ix, y: iy, marble: bombMarble });
 
@@ -814,48 +800,81 @@ export class GameScene extends BaseScene {
         });
     }
 
-    private _spawnCartoonStarburst(x: number, y: number): void {
-        const gfx = this.add.graphics().setDepth(25).setPosition(x, y);
-        const POINTS = 8, OUTER = 68, INNER = 27;
-
-        const drawStar = (fill: number, stroke: number) => {
-            gfx.clear();
-            gfx.fillStyle(fill, 1);
-            gfx.beginPath();
-            for (let i = 0; i < POINTS * 2; i++) {
-                const a = (i * Math.PI / POINTS) - Math.PI / 2;
-                const r = i % 2 === 0 ? OUTER : INNER;
-                if (i === 0) gfx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-                else         gfx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-            }
-            gfx.closePath();
-            gfx.fillPath();
-            gfx.lineStyle(3, stroke, 1);
-            gfx.beginPath();
-            for (let i = 0; i < POINTS * 2; i++) {
-                const a = (i * Math.PI / POINTS) - Math.PI / 2;
-                const r = i % 2 === 0 ? OUTER : INNER;
-                if (i === 0) gfx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-                else         gfx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-            }
-            gfx.closePath();
-            gfx.strokePath();
-        };
-
-        drawStar(0xffcc00, 0xff8800);
-        gfx.setScale(0.15);
+    /**
+     * Gumball/Adventure Time style explosion:
+     * white impact flash → flat orange disc with dark outline →
+     * organic blob shards flying outward → white sparkle dots at periphery.
+     * No geometric star points — organic and flat, bold dark outlines.
+     */
+    private _spawnExplosionVFX(x: number, y: number): void {
+        // 1 — White impact flash (classic AT "hit frame"): fast expand + fade
+        const flash = this.add.graphics().setDepth(28).setPosition(x, y);
+        flash.fillStyle(0xffffff, 1.0);
+        flash.fillCircle(0, 0, 50);
+        flash.setScale(0.2);
         this.tweens.add({
-            targets: gfx, scaleX: 1, scaleY: 1,
-            duration: 240, ease: 'Back.easeOut',
-            onComplete: () => {
-                drawStar(0xffffff, 0xffcc00);
-                this.tweens.add({
-                    targets: gfx, alpha: 0,
-                    delay: 60, duration: 200, ease: 'Quad.easeIn',
-                    onComplete: () => gfx.destroy(),
-                });
-            },
+            targets: flash, scaleX: 2, scaleY: 2, alpha: 0,
+            duration: 180, ease: 'Quad.easeOut',
+            onComplete: () => flash.destroy(),
         });
+
+        // 2 — Orange flat disc with thick dark outline
+        this.time.delayedCall(15, () => {
+            const disc = this.add.graphics().setDepth(27).setPosition(x, y);
+            disc.fillStyle(0xff8800, 1.0);
+            disc.fillCircle(0, 0, 46);
+            disc.lineStyle(6, 0x1a0a00, 1.0);
+            disc.strokeCircle(0, 0, 46);
+            disc.setScale(0.25);
+            this.tweens.add({
+                targets: disc, scaleX: 1.4, scaleY: 1.4, alpha: 0,
+                duration: 310, ease: 'Quad.easeOut',
+                onComplete: () => disc.destroy(),
+            });
+        });
+
+        // 3 — Organic blob shards (yellow/orange/red, dark outlines) flying outward
+        const BLOBS: [number, number, number, number, number][] = [
+            // [color, rx, ry, angleFrac, dist]
+            [0xffdd00, 15, 10,  0/6, 90],
+            [0xff6600, 11, 15,  1/6, 98],
+            [0xffaa00, 16,  9,  2/6, 85],
+            [0xff4400, 10, 14,  3/6, 92],
+            [0xffdd00, 13, 11,  4/6, 87],
+            [0xff8800, 12, 13,  5/6, 95],
+        ];
+        BLOBS.forEach(([color, rx, ry, af, dist]) => {
+            const angle = af * Math.PI * 2;
+            const blob = this.add.graphics().setDepth(26).setPosition(x, y);
+            blob.fillStyle(color, 1.0);
+            blob.fillEllipse(0, 0, rx * 2, ry * 2);
+            blob.lineStyle(3, 0x1a0a00, 1.0);
+            blob.strokeEllipse(0, 0, rx * 2, ry * 2);
+            this.tweens.add({
+                targets: blob,
+                x: x + Math.cos(angle) * dist,
+                y: y + Math.sin(angle) * dist,
+                scaleX: 0.15, scaleY: 0.15, alpha: 0,
+                duration: 380, ease: 'Quad.easeOut', delay: 25,
+                onComplete: () => blob.destroy(),
+            });
+        });
+
+        // 4 — White sparkle dots at periphery (8 evenly spaced)
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + 0.4;
+            const dot = this.add.graphics().setDepth(25).setPosition(x, y);
+            dot.fillStyle(0xffffff, 1.0);
+            dot.fillCircle(0, 0, 5);
+            this.tweens.add({
+                targets: dot,
+                x: x + Math.cos(angle) * 115,
+                y: y + Math.sin(angle) * 115,
+                scaleX: 0.3, scaleY: 0.3, alpha: 0,
+                duration: 360, ease: 'Quad.easeOut', delay: 40,
+                onComplete: () => dot.destroy(),
+            });
+        }
     }
 
     private _refreshBombBadge(): void {
