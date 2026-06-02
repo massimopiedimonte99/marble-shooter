@@ -26,7 +26,7 @@ export class BombController {
 
     load(): void {
         if (this._loaded) return;
-        if (saveManager.getInventory('bomb') <= 0) return;
+        // if (saveManager.getInventory('bomb') <= 0) return;
         this._loaded = true;
         this._shooter.setBombMode(true);
         this._startIconGlow();
