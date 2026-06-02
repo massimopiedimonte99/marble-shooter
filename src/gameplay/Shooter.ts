@@ -85,18 +85,22 @@ export class Shooter {
         if (this._bombMode) {
             this._glowGfx.clear();
             if (this._bombDisplay) {
-                // Cycle hue through rainbow (full rotation every ~3.3 s)
-                const col = hslToHex((time * 0.0003) % 1, 1.0, 0.58);
+                // Faster rainbow cycle (~2 s full rotation)
+                const col = hslToHex((time * 0.0005) % 1, 1.0, 0.55);
                 (this._bombDisplay.list[0] as GameObjects.Image).setTint(col);
-                // Soft rainbow halo from the shared glow graphics
                 const mx = this._bombDisplay.x;
                 const my = this._bombDisplay.y;
                 const r  = MARBLE_RADIUS;
-                const pulse = 0.18 + 0.08 * Math.sin(time * 0.006);
-                this._glowGfx.fillStyle(col, pulse);
-                this._glowGfx.fillCircle(mx, my, r * 1.45);
-                this._glowGfx.lineStyle(3, col, 0.9);
-                this._glowGfx.strokeCircle(mx, my, r + 6);
+                // Crisp white inner ring
+                this._glowGfx.lineStyle(2, 0xffffff, 1.0);
+                this._glowGfx.strokeCircle(mx, my, r + 2);
+                // Bold opaque colour ring
+                this._glowGfx.lineStyle(5, col, 1.0);
+                this._glowGfx.strokeCircle(mx, my, r + 9);
+                // Pulsing outer "danger" ring (beats ~120bpm)
+                const beat = Math.abs(Math.sin(time * 0.006));
+                this._glowGfx.lineStyle(3, col, beat);
+                this._glowGfx.strokeCircle(mx, my, r + 18 + beat * 10);
             }
             return;
         }
@@ -163,14 +167,21 @@ export class Shooter {
     private _startBombTweens(): void {
         if (!this._bombDisplay) return;
         this._bombPulseTween?.stop();
+        // Pop-in entrance: snap from tiny → overshoot → settle
+        this._bombDisplay.setScale(0.1);
         this._bombPulseTween = this._scene.tweens.add({
             targets: this._bombDisplay,
-            scaleX: { from: 1.0, to: 1.07 },
-            scaleY: { from: 1.0, to: 1.07 },
-            duration: 900,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut',
+            scaleX: 1.15, scaleY: 1.15,
+            duration: 260, ease: 'Back.easeOut',
+            onComplete: () => {
+                // Continuous breathing pulse after entrance
+                this._bombPulseTween = this._scene.tweens.add({
+                    targets: this._bombDisplay,
+                    scaleX: { from: 1.0, to: 1.10 },
+                    scaleY: { from: 1.0, to: 1.10 },
+                    duration: 450, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+                });
+            },
         });
     }
 

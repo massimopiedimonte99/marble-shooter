@@ -347,10 +347,10 @@ export class GameScene extends BaseScene {
         this._bombCtrl = new BombController(this, this.shooter, this._bombIcon);
 
         this._bombIcon.on('pointerdown', () => {
-            if (saveManager.getInventory('bomb') <= 0 && !this._bombCtrl.isLoaded) {
-                diag.log('button_pressed', { id: 'bomb', result: 'empty' });
-                return;
-            }
+            // if (saveManager.getInventory('bomb') <= 0 && !this._bombCtrl.isLoaded) {
+            //     diag.log('button_pressed', { id: 'bomb', result: 'empty' });
+            //     return;
+            // }
             if (this._bombCtrl.isLoaded) this._bombCtrl.unload('user_toggle');
             else this._bombCtrl.load();
         });
@@ -426,7 +426,7 @@ export class GameScene extends BaseScene {
         audioManager.bindEvents();
         eventBus.on(GameEvent.Match, this._onMatchHandler);
         eventBus.on(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
-        eventBus.on(GameEvent.BombImpact, this._onBombImpactHandler);
+        eventBus.on(GameEvent.BombInserted, this._onBombInsertedHandler);
         this.events.on('shutdown', this._shutdown, this);
 
         if (import.meta.env.DEV) {
@@ -719,79 +719,144 @@ export class GameScene extends BaseScene {
 
     // ── Bomb power-up handlers ─────────────────────────────────────────────────
 
-    /** Fired when CollisionResolver detects a bomb projectile touching the chain. */
-    private readonly _onBombImpactHandler = (payload: EventPayloads[GameEvent.BombImpact]) => {
-        const { x: ix, y: iy, marble: bombMarble } = payload;
-        const RADIUS_SQ = BOMB_RADIUS * BOMB_RADIUS;
+    /**
+     * Fired when CollisionResolver inserts a bomb marble into the chain.
+     * Plays a brief "charge" animation on the inserted marble, then detonates.
+     */
+    private readonly _onBombInsertedHandler = (payload: EventPayloads[GameEvent.BombInserted]) => {
+        const { marble: bombMarble, centerX: ix, centerY: iy } = payload;
+        if (this._ended) return;
 
-        // Release the bomb projectile marble (visual disappears)
-        if (bombMarble) this.marblePool.release(bombMarble);
+        const CHARGE_MS = 180;
+        const D = MARBLE_RADIUS * 2;
 
-        // Collect chain nodes in detonation radius
-        const victims: LinkedListNode<Marble>[] = [];
-        this.chain.forEachMarble((m) => {
-            if (!m.visible || !m.node) return;
-            const dx = m.trueX - ix;
-            const dy = m.trueY - iy;
-            if (dx * dx + dy * dy <= RADIUS_SQ) victims.push(m.node);
+        this.chain.frozen = true;
+
+        // Orange charge flash + grow
+        this.tweens.killTweensOf(bombMarble);
+        bombMarble.setTint(0xff6600);
+        this.tweens.add({
+            targets: bombMarble,
+            displayWidth: D * 1.5,
+            displayHeight: D * 1.5,
+            duration: CHARGE_MS,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+                bombMarble.setTint(0xffffff);
+                this.time.delayedCall(40, () => this._detonateFromChain(bombMarble, ix, iy));
+            },
         });
+    };
 
-        // Always spawn VFX at impact point
+    private _detonateFromChain(bombMarble: Marble, ix: number, iy: number): void {
+        if (this._ended) { this.chain.frozen = false; return; }
+
+        const RADIUS_SQ = BOMB_RADIUS * BOMB_RADIUS;
+        const D = MARBLE_RADIUS * 2;
+
+        // ── VFX ────────────────────────────────────────────────────────────────
+        this._spawnCartoonStarburst(ix, iy);
         this._spawnShockwave(ix, iy);
-        this._fx.shake(8, 180);
-        this._burstEmitter.setParticleTint(0xff4030);
-        this._burstEmitter.explode(50, ix, iy);
+        this._fx.shake(12, 220);
+        this._burstEmitter.setParticleTint(0xff8800);
+        this._burstEmitter.explode(60, ix, iy);
+        this._bombTrailEmitter.explode(20, ix, iy);
+        // Emit BombImpact so AudioManager plays the detonate SFX
+        eventBus.emit(GameEvent.BombImpact, { x: ix, y: iy, marble: bombMarble });
+
+        // ── Collect victims (bomb marble always included) ──────────────────────
+        const victims: LinkedListNode<Marble>[] = [];
+        this.chain.forEachMarble(m => {
+            if (!m.visible || !m.node) return;
+            const isBomb = m === bombMarble;
+            const dx = m.trueX - ix, dy = m.trueY - iy;
+            if (isBomb || dx * dx + dy * dy <= RADIUS_SQ) victims.push(m.node);
+        });
 
         if (victims.length === 0) {
             diag.log('powerup_bomb_impact', { x: ix, y: iy, removed: 0 });
+            if (!this._ended) this.chain.frozen = false;
             return;
         }
 
-        // Capture seed neighbour BEFORE removal (for cascade resolution)
         const seedBefore = victims[0].prev;
         const popTargets = victims.map(n => n.value);
-        const D = MARBLE_RADIUS * 2;
 
-        // Freeze chain during pop animation
-        this.chain.frozen = true;
-
-        // Scale-pop + fade out marbles in range, THEN remove nodes
+        // Scale-out + fade
         this.tweens.add({
             targets: popTargets,
-            displayWidth: D * 1.3,
-            displayHeight: D * 1.3,
+            displayWidth: D * 1.5,
+            displayHeight: D * 1.5,
             alpha: 0,
-            duration: 120,
+            duration: 160,
             ease: 'Quad.easeOut',
             onComplete: () => {
                 this.chain.removeNodes(victims);
                 this.chain.retractHead(victims.length);
 
                 if (seedBefore?.value?.node) {
-                    // _runMatchSequence guards against frozen — unfreeze first, it re-freezes internally
                     this.chain.frozen = false;
                     this._runMatchSequence(seedBefore);
                 } else {
-                    // No cascade — settle remaining marbles then unfreeze
                     const remaining: Marble[] = [];
                     this.chain.forEachMarble(m => { m.beginSettle(m.x, m.y); remaining.push(m); });
                     if (remaining.length === 0) {
                         if (!this._ended) this.chain.frozen = false;
                     } else {
                         this.tweens.add({
-                            targets: remaining,
-                            settleT: 0,
-                            duration: 200,
-                            ease: 'Quad.easeOut',
+                            targets: remaining, settleT: 0, duration: 200, ease: 'Quad.easeOut',
                             onComplete: () => { if (!this._ended) this.chain.frozen = false; },
                         });
                     }
                 }
-
                 diag.log('powerup_bomb_impact', { x: ix, y: iy, removed: victims.length });
             },
         });
-    };
+    }
+
+    private _spawnCartoonStarburst(x: number, y: number): void {
+        const gfx = this.add.graphics().setDepth(25).setPosition(x, y);
+        const POINTS = 8, OUTER = 68, INNER = 27;
+
+        const drawStar = (fill: number, stroke: number) => {
+            gfx.clear();
+            gfx.fillStyle(fill, 1);
+            gfx.beginPath();
+            for (let i = 0; i < POINTS * 2; i++) {
+                const a = (i * Math.PI / POINTS) - Math.PI / 2;
+                const r = i % 2 === 0 ? OUTER : INNER;
+                if (i === 0) gfx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+                else         gfx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            gfx.closePath();
+            gfx.fillPath();
+            gfx.lineStyle(3, stroke, 1);
+            gfx.beginPath();
+            for (let i = 0; i < POINTS * 2; i++) {
+                const a = (i * Math.PI / POINTS) - Math.PI / 2;
+                const r = i % 2 === 0 ? OUTER : INNER;
+                if (i === 0) gfx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+                else         gfx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            gfx.closePath();
+            gfx.strokePath();
+        };
+
+        drawStar(0xffcc00, 0xff8800);
+        gfx.setScale(0.15);
+        this.tweens.add({
+            targets: gfx, scaleX: 1, scaleY: 1,
+            duration: 240, ease: 'Back.easeOut',
+            onComplete: () => {
+                drawStar(0xffffff, 0xffcc00);
+                this.tweens.add({
+                    targets: gfx, alpha: 0,
+                    delay: 60, duration: 200, ease: 'Quad.easeIn',
+                    onComplete: () => gfx.destroy(),
+                });
+            },
+        });
+    }
 
     private _refreshBombBadge(): void {
         const inv = saveManager.getInventory('bomb');
@@ -820,7 +885,7 @@ export class GameScene extends BaseScene {
     private _shutdown(): void {
         eventBus.off(GameEvent.Match, this._onMatchHandler);
         eventBus.off(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
-        eventBus.off(GameEvent.BombImpact, this._onBombImpactHandler);
+        eventBus.off(GameEvent.BombInserted, this._onBombInsertedHandler);
         this._holdTimer?.remove(false);
         if (import.meta.env.DEV) {
             delete (window as any).__forceChainState;

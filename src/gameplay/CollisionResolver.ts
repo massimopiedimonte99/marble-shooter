@@ -32,14 +32,17 @@ export class CollisionResolver {
             const hit = this.chain.findNearestGapNode(impactX, impactY, Number.MAX_SAFE_INTEGER);
             if (!hit) return;
 
-            // ── Bomb bypass: emit BombImpact instead of inserting into chain ────────
+            // ── Bomb: insert into chain first, then emit BombInserted for charge+detonate ─
             if (p.isBomb) {
-                const bombMarble = p.marble!; // marble is guaranteed non-null here (checked above)
+                const hit = this.chain.findNearestGapNode(impactX, impactY, Number.MAX_SAFE_INTEGER);
+                if (!hit) return;
+                this.chain.insertMarbleAfter(hit, m);
+                const bombMarble = m;
                 p.marble = null;
                 this.projectiles.release(p);
-                diag.log('projectile_release', { reason: 'bomb_impact' });
-                eventBus.emit(GameEvent.BombImpact, { x: impactX, y: impactY, marble: bombMarble });
-                diag.log('powerup_bomb_impact', { x: impactX, y: impactY });
+                diag.log('projectile_release', { reason: 'bomb_insert' });
+                eventBus.emit(GameEvent.BombInserted, { marble: bombMarble, centerX: impactX, centerY: impactY });
+                diag.log('powerup_bomb_inserted', { x: impactX, y: impactY });
                 return;
             }
 
