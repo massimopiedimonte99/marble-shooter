@@ -27,9 +27,9 @@ import { audioManager } from '@/audio/AudioManager';
 import { saveManager } from '@/state/SaveManager';
 
 const INSERT_SETTLE_MS = 90;
-const MATCH_HOLD_MS    = 120;
-const RECOIL_MS        = 200;
-const BOMB_RADIUS      = 100;
+const MATCH_HOLD_MS = 120;
+const RECOIL_MS = 200;
+const BOMB_RADIUS = 100;
 
 const COIN_REWARD: Record<number, number> = { 3: 10, 4: 50, 5: 100, 6: 200 };
 const coinReward = (count: number): number => COIN_REWARD[count] ?? count * 50;
@@ -42,18 +42,18 @@ const coinReward = (count: number): number => COIN_REWARD[count] ?? count * 50;
  */
 function bakePathGroove(scene: Phaser.Scene, path: Phaser.Curves.Path, depth: number): void {
     const pts = path.getPoints(256);
-    const n   = pts.length;
+    const n = pts.length;
 
     const ox = new Float32Array(n);
     const oy = new Float32Array(n);
     for (let i = 0; i < n; i++) {
         const prev = pts[Math.max(0, i - 1)];
         const next = pts[Math.min(n - 1, i + 1)];
-        const dx   = next.x - prev.x;
-        const dy   = next.y - prev.y;
-        const len  = Math.hypot(dx, dy) || 1;
+        const dx = next.x - prev.x;
+        const dy = next.y - prev.y;
+        const len = Math.hypot(dx, dy) || 1;
         ox[i] = -dy / len;
-        oy[i] =  dx / len;
+        oy[i] = dx / len;
     }
 
     const LAYERS: [number, number, number][] = [
@@ -62,7 +62,7 @@ function bakePathGroove(scene: Phaser.Scene, path: Phaser.Curves.Path, depth: nu
         [26, 0x8B5A2B, 1.00],
         [19, 0xBE8540, 0.95],
         [11, 0xD9AC62, 0.78],
-        [ 4, 0xF0D895, 0.40],
+        [4, 0xF0D895, 0.40],
     ];
 
     const gfx = scene.add.graphics();
@@ -141,8 +141,8 @@ export class GameScene extends BaseScene {
 
     // ─────────────────────────────────────────────────────────────────────────
     private readonly _onMatchHandler = (p: EventPayloads[GameEvent.Match]) => {
-        const multi  = this._comboTracker.registerMatch(this.time.now);
-        const base   = coinReward(p.count);
+        const multi = this._comboTracker.registerMatch(this.time.now);
+        const base = coinReward(p.count);
         const reward = base * multi;
         this._score += reward;
         this._scoreText.setText(String(this._score));
@@ -174,17 +174,17 @@ export class GameScene extends BaseScene {
 
     // ─────────────────────────────────────────────────────────────────────────
     create(): void {
-        this._ended              = false;
+        this._ended = false;
         this._chainEverPopulated = false;
-        this._frameN             = 0;
-        this._score              = 0;
-        this._flowOffset         = 0;
-        const POWERUP_SIZE    = 120;
+        this._frameN = 0;
+        this._score = 0;
+        this._flowOffset = 0;
+        const POWERUP_SIZE = 120;
         const POWERUP_SPACING = 110;
-        const POWERUP_COUNT   = 4;
-        const POWERUP_Y       = 1170;
-        const totalSpan       = (POWERUP_COUNT - 1) * POWERUP_SPACING;
-        const startX          = (GAME_WIDTH - totalSpan) / 2;
+        const POWERUP_COUNT = 4;
+        const POWERUP_Y = 1170;
+        const totalSpan = (POWERUP_COUNT - 1) * POWERUP_SPACING;
+        const startX = (GAME_WIDTH - totalSpan) / 2;
 
         // ── Background ──────────────────────────────────────────────────────────
         coverBackground(this, AssetKeys.BG_GAMEPLAY).setDepth(-10);
@@ -200,21 +200,21 @@ export class GameScene extends BaseScene {
 
         // ── Outer loop ──────────────────────────────────────────────────────────
         path.lineTo(605, 190);
-        buildCorner(path, 665, 250,   638, 190,   665, 217);  // top-right  → ↓
+        buildCorner(path, 665, 250, 638, 190, 665, 217);  // top-right  → ↓
         path.lineTo(665, 945);
-        buildCorner(path, 605, 1005,  665, 978,   638, 1005); // bottom-right ↓ →
+        buildCorner(path, 605, 1005, 665, 978, 638, 1005); // bottom-right ↓ →
         path.lineTo(115, 1005);
-        buildCorner(path, 55, 945,    88, 1005,    55, 978);  // bottom-left ← ↑
+        buildCorner(path, 55, 945, 88, 1005, 55, 978);  // bottom-left ← ↑
         path.lineTo(55, 405);
 
         // ── Transition outer left → inner (C1 at both ends: CP1 above start, CP2 above end) ─
-        path.cubicBezierTo(560, 405,   55, 345,   560, 330);
+        path.cubicBezierTo(560, 405, 55, 345, 560, 330);
 
         // ── Inner loop ─────────────────────────────────────────────────────────
         path.lineTo(560, 825);
-        buildCorner(path, 490, 895,   560, 856,   529, 895);  // inner BR ↓ ←  R=70
+        buildCorner(path, 490, 895, 560, 856, 529, 895);  // inner BR ↓ ←  R=70
         path.lineTo(225, 895);
-        buildCorner(path, 155, 825,   194, 895,   155, 856);  // inner BL ← ↑  R=70
+        buildCorner(path, 155, 825, 194, 895, 155, 856);  // inner BL ← ↑  R=70
         path.lineTo(155, 470);
         this._path = path;
 
@@ -230,11 +230,11 @@ export class GameScene extends BaseScene {
             .setDisplaySize(100, 100).setDepth(-3);
 
         // ── Gameplay objects ─────────────────────────────────────────────────────
-        this.marblePool     = new MarblePool(this);
-        this.chain          = new MarbleChain(path, this.marblePool);
+        this.marblePool = new MarblePool(this);
+        this.chain = new MarbleChain(path, this.marblePool);
         this.projectilePool = new ProjectilePool();
-        this.shooter        = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT / 2);
-        this.resolver       = new CollisionResolver(this.chain, this.projectilePool);
+        this.shooter = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT / 2);
+        this.resolver = new CollisionResolver(this.chain, this.projectilePool);
 
         // ── 3D marble highlight overlay (updated in update()) ────────────────────
         this._marbleHighlightGfx = this.add.graphics().setDepth(2);
@@ -395,7 +395,7 @@ export class GameScene extends BaseScene {
 
             const proj = this.projectilePool.acquire();
             if (!proj) return;
-            const color  = this.shooter.getNextColor();
+            const color = this.shooter.getNextColor();
             const marble = this.marblePool.acquire(color, this.shooter.x, this.shooter.y);
             if (!marble) { this.projectilePool.release(proj); return; }
 
@@ -424,12 +424,12 @@ export class GameScene extends BaseScene {
         this.events.on('shutdown', this._shutdown, this);
 
         if (import.meta.env.DEV) {
-            (window as any).__game     = this.game;
+            (window as any).__game = this.game;
             (window as any).__eventBus = eventBus;
-            (window as any).__shooter  = this.shooter;
+            (window as any).__shooter = this.shooter;
             (window as any).__chainDebug = {
                 snapshot: () => { const o: MarbleColor[] = []; this.chain.forEachMarble(m => o.push(m.marbleColor)); return o; },
-                length:   () => this.chain.length,
+                length: () => this.chain.length,
             };
             (window as any).__forceChainState = (colors: MarbleColor[]) => {
                 this.chain.clearAll();
@@ -438,11 +438,11 @@ export class GameScene extends BaseScene {
             };
             (window as any).__disableShooter = (v = true) => this.shooter.setEnabled(!v);
             (window as any).__bomb = {
-                load:      () => this._bombCtrl.load(),
-                unload:    () => this._bombCtrl.unload('user_toggle'),
-                isLoaded:  () => this._bombCtrl.isLoaded,
+                load: () => this._bombCtrl.load(),
+                unload: () => this._bombCtrl.unload('user_toggle'),
+                isLoaded: () => this._bombCtrl.isLoaded,
                 inventory: () => saveManager.getInventory('bomb'),
-                grant:     (n = 1) => { saveManager.grantPowerUp('bomb', n); this._refreshBombBadge(); },
+                grant: (n = 1) => { saveManager.grantPowerUp('bomb', n); this._refreshBombBadge(); },
             };
         }
 
@@ -455,7 +455,7 @@ export class GameScene extends BaseScene {
 
         this.chain.update(_time, delta);
         const pointer = this.input.activePointer;
-        const inAim   = !this._ended && this.shooter.enabled && this._pointerInAimZone(pointer);
+        const inAim = !this._ended && this.shooter.enabled && this._pointerInAimZone(pointer);
         this.shooter.update(pointer, inAim);
         this.shooter.drawGlow(_time);
 
@@ -618,10 +618,10 @@ export class GameScene extends BaseScene {
     }
 
     private _showComboText(level: number): void {
-        const labels  = ['', '', '×2 COMBO!', '×3 HOT!', '×4 BLAZING!', '×5 INSANE!', 'FEVER!!!'];
-        const colors  = ['', '', '#ffdd00',   '#ff8800', '#ff3300',     '#ff00cc',    '#ffffff'];
-        const strokes = ['', '', '#883300',   '#882200', '#550000',     '#660055',    '#ff00cc'];
-        const idx     = Math.min(level, 6);
+        const labels = ['', '', '×2 COMBO!', '×3 HOT!', '×4 BLAZING!', '×5 INSANE!', 'FEVER!!!'];
+        const colors = ['', '', '#ffdd00', '#ff8800', '#ff3300', '#ff00cc', '#ffffff'];
+        const strokes = ['', '', '#883300', '#882200', '#550000', '#660055', '#ff00cc'];
+        const idx = Math.min(level, 6);
         this.tweens.killTweensOf(this._comboText);
         this._comboText
             .setText(labels[idx] ?? `×${level}!`)
@@ -708,11 +708,28 @@ export class GameScene extends BaseScene {
      * Plays a brief "charge" animation on the inserted marble, then detonates.
      */
     private readonly _onBombInsertedHandler = (payload: EventPayloads[GameEvent.BombInserted]) => {
-        const { marble: bombMarble, centerX: ix, centerY: iy } = payload;
+        const { marble: bombMarble } = payload;
         if (this._ended) return;
-        this.chain.frozen = true;
-        // Brief pause — marble sits in chain visually unchanged, then detonates
-        this.time.delayedCall(80, () => this._detonateFromChain(bombMarble, ix, iy));
+
+        // 1. Funzione per mantenere vivo l'effetto arcobaleno nella catena
+        const animateBomb = (time: number) => {
+            if (bombMarble && bombMarble.active) {
+                bombMarble.setTint(hslToHex((time * 0.0005) % 1, 1.0, 0.55));
+            }
+        };
+        
+        // 2. Aggancia la funzione al ciclo di update
+        this.events.on('update', animateBomb);
+
+        // 3. Attendi 200ms, poi pulisci e detona
+        this.time.delayedCall(500, () => {
+            this.events.off('update', animateBomb); // Rimuove l'animazione
+            
+            if (this._ended) return;
+            
+            this.chain.frozen = true;
+            this._detonateFromChain(bombMarble, bombMarble.trueX, bombMarble.trueY);
+        });
     };
 
     private _detonateFromChain(bombMarble: Marble, ix: number, iy: number): void {
@@ -722,11 +739,8 @@ export class GameScene extends BaseScene {
         const D = MARBLE_RADIUS * 2;
 
         // ── VFX ────────────────────────────────────────────────────────────────
-        this._spawnExplosionVFX(ix, iy);
-        this._spawnShockwave(ix, iy);
-        this._fx.shake(10, 200);
-        this._burstEmitter.setParticleTint(0xffdd00);
         this._burstEmitter.explode(18, ix, iy);
+
         // Emit BombImpact so AudioManager plays the detonate SFX
         eventBus.emit(GameEvent.BombImpact, { x: ix, y: iy, marble: bombMarble });
 
@@ -816,12 +830,12 @@ export class GameScene extends BaseScene {
         // 3 — Organic blob shards (yellow/orange/red, dark outlines) flying outward
         const BLOBS: [number, number, number, number, number][] = [
             // [color, rx, ry, angleFrac, dist]
-            [0xffdd00, 15, 10,  0/6, 90],
-            [0xff6600, 11, 15,  1/6, 98],
-            [0xffaa00, 16,  9,  2/6, 85],
-            [0xff4400, 10, 14,  3/6, 92],
-            [0xffdd00, 13, 11,  4/6, 87],
-            [0xff8800, 12, 13,  5/6, 95],
+            [0xffdd00, 15, 10, 0 / 6, 90],
+            [0xff6600, 11, 15, 1 / 6, 98],
+            [0xffaa00, 16, 9, 2 / 6, 85],
+            [0xff4400, 10, 14, 3 / 6, 92],
+            [0xffdd00, 13, 11, 4 / 6, 87],
+            [0xff8800, 12, 13, 5 / 6, 95],
         ];
         BLOBS.forEach(([color, rx, ry, af, dist]) => {
             const angle = af * Math.PI * 2;
