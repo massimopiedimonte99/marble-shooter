@@ -157,6 +157,38 @@ export class MarbleChain {
         });
     }
 
+    /**
+     * Non-mutating peek of the next match group from seed. Returns null if no match exists.
+     * Prefer this + removeMatchGroup for sequenced (animated) resolution.
+     * resolveMatchesFrom is the instant-batch variant (use for non-animated callers).
+     */
+    peekNextMatchGroup(seed: LinkedListNode<Marble>): {
+        group: LinkedListNode<Marble>[];
+        before: LinkedListNode<Marble> | null;
+        after: LinkedListNode<Marble> | null;
+        color: MarbleColor;
+        count: number;
+        position: { x: number; y: number };
+    } | null {
+        const group = MatchDetector.findMatchGroup(seed);
+        if (!group) return null;
+        const before = group[0].prev;
+        const after  = group[group.length - 1].next;
+        const px = (group[0].value.x + group[group.length - 1].value.x) / 2;
+        const py = (group[0].value.y + group[group.length - 1].value.y) / 2;
+        const color = group[0].value.marbleColor;
+        return { group, before, after, color, count: group.length, position: { x: px, y: py } };
+    }
+
+    /** Removes a previously-peeked group and retracts head if retract=true.
+     *  Caller must have animated the marbles already. */
+    removeMatchGroup(group: LinkedListNode<Marble>[], retract: boolean): void {
+        this.removeNodes(group);
+        if (retract) this.retractHead(group.length);
+    }
+
+    /** Instant-batch resolution — removes all cascade groups in the same frame.
+     *  Prefer peekNextMatchGroup + removeMatchGroup for sequenced animated resolution. */
     resolveMatchesFrom(seed: LinkedListNode<Marble>): MatchResolutionResult {
         const groups: MatchResolutionResult['groups'] = [];
         let totalRemoved = 0;

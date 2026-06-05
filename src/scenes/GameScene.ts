@@ -27,7 +27,6 @@ import { audioManager } from '@/audio/AudioManager';
 import { saveManager } from '@/state/SaveManager';
 
 const INSERT_SETTLE_MS = 90;
-const MATCH_HOLD_MS = 120;
 const RECOIL_MS = 200;
 const BOMB_RADIUS = 100;
 
@@ -124,7 +123,6 @@ export class GameScene extends BaseScene {
     // ── State ──────────────────────────────────────────────────────────────────
     private _frameN = 0;
     private _spawnTimer?: Phaser.Time.TimerEvent;
-    private _holdTimer?: Phaser.Time.TimerEvent;
     private _ended = false;
     private _chainEverPopulated = false;
     private _ignoreNextPointerUp = false;
@@ -559,13 +557,18 @@ export class GameScene extends BaseScene {
         const targets: Marble[] = [m];
         this.tweens.killTweensOf(m);
         m.beginSettle(fromX, fromY);
-        let n = m.node?.next ?? null;
-        while (n) {
-            const nm = n.value;
-            this.tweens.killTweensOf(nm);
-            nm.beginSettle(nm.x, nm.y);
-            targets.push(nm);
-            n = n.next;
+        // During an active cascade (chain.frozen=true), the cascade's inter-step settle
+        // tween owns the sibling marbles. Killing their tweens here would orphan that
+        // tween's onComplete and leave chain.frozen=true permanently.
+        if (!this.chain.frozen) {
+            let n = m.node?.next ?? null;
+            while (n) {
+                const nm = n.value;
+                this.tweens.killTweensOf(nm);
+                nm.beginSettle(nm.x, nm.y);
+                targets.push(nm);
+                n = n.next;
+            }
         }
         this.tweens.add({
             targets,
@@ -587,33 +590,103 @@ export class GameScene extends BaseScene {
         if (this._ended || !seed.value.node || this.chain.frozen) return;
         this.chain.frozen = true;
         const D = MARBLE_RADIUS * 2;
+
+        // Settle the whole chain to current positions (kills mid-spawn tweens).
         this.chain.forEachMarble((m) => {
             this.tweens.killTweensOf(m);
             m.setDisplaySize(D, D);
             m.beginSettle(m.x, m.y);
         });
-        const result = this.chain.resolveMatchesFrom(seed);
-        for (const g of result.groups) {
-            eventBus.emit(GameEvent.Match, { count: g.count, color: g.color, position: g.position });
-        }
-        if (result.chainSteps >= 2) {
-            eventBus.emit(GameEvent.ChainReaction, { steps: result.chainSteps, totalRemoved: result.totalRemoved });
-        }
-        if (this.chain.length === 0) { this.chain.frozen = false; return; }
 
-        this._holdTimer?.remove(false);
-        this._holdTimer = this.time.delayedCall(MATCH_HOLD_MS, () => {
-            this._holdTimer = undefined;
-            if (this._ended) return;
-            const marbles: Marble[] = [];
-            this.chain.forEachMarble((m) => marbles.push(m));
+        let chainSteps = 0;
+        let totalRemoved = 0;
+
+        // Recursive helper — animates one cascade beat then schedules the next.
+        const playStep = (currentSeed: LinkedListNode<Marble> | null): void => {
+            if (this._ended || !currentSeed) { this._finishCascade(chainSteps, totalRemoved); return; }
+            const step = this.chain.peekNextMatchGroup(currentSeed);
+            if (!step) { this._finishCascade(chainSteps, totalRemoved); return; }
+
+            // Emit Match NOW — score/SFX/particles fire per group, same payload, same order.
+            eventBus.emit(GameEvent.Match, { count: step.count, color: step.color, position: step.position });
+            chainSteps++;
+            totalRemoved += step.count;
+
+            const marbles = step.group.map(n => n.value);
+            const { before, after } = step;
+
+            // Phase 1 — Anticipation (A6): 1.0→1.08→1.0 yoyo 80ms.
             this.tweens.add({
                 targets: marbles,
-                settleT: 0,
-                duration: RECOIL_MS,
+                displayWidth: D * 1.08,
+                displayHeight: D * 1.08,
+                duration: 80,
                 ease: 'Quad.easeOut',
-                onComplete: () => { if (!this._ended) this.chain.frozen = false; },
+                yoyo: true,
+                onComplete: () => {
+                    // Phase 2 — Pop+fade (A5): 120ms scale 1.3 + alpha 0.
+                    this.tweens.add({
+                        targets: marbles,
+                        displayWidth: D * 1.3,
+                        displayHeight: D * 1.3,
+                        alpha: 0,
+                        duration: 120,
+                        ease: 'Quad.easeOut',
+                        onComplete: () => {
+                            if (this._ended) return;
+                            // Collect survivors BEFORE removal so they can animate sliding together.
+                            const removedSet = new Set(step.group.map(n => n.value));
+                            const remaining: Marble[] = [];
+                            this.chain.forEachMarble(m => { if (!removedSet.has(m)) remaining.push(m); });
+                            // Prime settle: each survivor records its current position.
+                            // After retractHead the arc shifts; the tween slides them there.
+                            remaining.forEach(m => m.beginSettle(m.x, m.y));
+                            this.chain.removeMatchGroup(step.group, after !== null);
+                            diag.log('match_detected', {
+                                count: step.count,
+                                color: step.color,
+                                cascaded: !!(before && after &&
+                                            before.value.marbleColor === after.value.marbleColor),
+                            });
+                            const nextSeed = (before && after &&
+                                              before.value.marbleColor === after.value.marbleColor)
+                                ? before : null;
+                            // Slide survivors to fill the gap, then start the next beat.
+                            if (remaining.length > 0) {
+                                this.tweens.add({
+                                    targets: remaining,
+                                    settleT: 0,
+                                    duration: 120,
+                                    ease: 'Quad.easeOut',
+                                    onComplete: () => { if (!this._ended) playStep(nextSeed); },
+                                });
+                            } else {
+                                playStep(nextSeed);
+                            }
+                        },
+                    });
+                },
             });
+        };
+
+        playStep(seed);
+    }
+
+    private _finishCascade(chainSteps: number, totalRemoved: number): void {
+        if (this._ended) return;
+        diag.log('resolution_complete', { totalRemoved, chainSteps });
+        if (chainSteps >= 2) {
+            eventBus.emit(GameEvent.ChainReaction, { steps: chainSteps, totalRemoved });
+        }
+        if (this.chain.length === 0) { this.chain.frozen = false; return; }
+        const marbles: Marble[] = [];
+        this.chain.forEachMarble(m => { m.beginSettle(m.x, m.y); marbles.push(m); });
+        this.tweens.add({
+            targets: marbles,
+            settleT: 0,
+            duration: RECOIL_MS,
+            ease: 'Quad.easeOut',
+            onComplete: () => { if (!this._ended) this.chain.frozen = false; },
         });
     }
 
@@ -680,8 +753,6 @@ export class GameScene extends BaseScene {
         this._ended = true;
         if (this._bombCtrl?.isLoaded) this._bombCtrl.unload('scene_end');
         this._spawnTimer?.remove(false);
-        this._holdTimer?.remove(false);
-        this._holdTimer = undefined;
         this.chain.frozen = true;
         this.shooter.setEnabled(false);
         this.projectilePool.forEachAlive((p) => {
@@ -722,7 +793,7 @@ export class GameScene extends BaseScene {
         this.events.on('update', animateBomb);
 
         // 3. Attendi 200ms, poi pulisci e detona
-        this.time.delayedCall(500, () => {
+        this.time.delayedCall(1000, () => {
             this.events.off('update', animateBomb); // Rimuove l'animazione
             
             if (this._ended) return;
@@ -899,7 +970,6 @@ export class GameScene extends BaseScene {
         eventBus.off(GameEvent.Match, this._onMatchHandler);
         eventBus.off(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
         eventBus.off(GameEvent.BombInserted, this._onBombInsertedHandler);
-        this._holdTimer?.remove(false);
         if (import.meta.env.DEV) {
             delete (window as any).__forceChainState;
             delete (window as any).__disableShooter;
