@@ -520,10 +520,10 @@ export class GameScene extends BaseScene {
         this._aimGuide.update(pointer, this.shooter.x, this.shooter.y, colorHex, delta, inAim);
 
         // ── Win / lose ─────────────────────────────────────────────────────────────
-        if (this._chainEverPopulated && this.chain.length === 0) {
+        if (true) {
             this._ended = true;
             eventBus.emit(GameEvent.LevelCompleted, {});
-            this._endRun('Win');
+            this._endRun('GameOver');
             return;
         }
         if (this.chain.headFraction >= 1.0) {

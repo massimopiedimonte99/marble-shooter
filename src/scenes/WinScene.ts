@@ -25,14 +25,15 @@ export class WinScene extends BaseScene {
     create(): void {
         const cx = GAME_WIDTH / 2;
         const cy = GAME_HEIGHT / 2;
-        const PANEL_DISPLAY = 620;
+        const PANEL_DISPLAY_WIDTH = 750;
+        const PANEL_DISPLAY_HEIGHT = 950;
         const creamY = cy + 53;
 
         coverBackground(this, AssetKeys.BG_GAMEPLAY);
         this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45);
 
         this.add.image(cx, cy, AssetKeys.PANEL_VICTORY)
-            .setDisplaySize(PANEL_DISPLAY, PANEL_DISPLAY);
+            .setDisplaySize(PANEL_DISPLAY_WIDTH, PANEL_DISPLAY_HEIGHT);
 
         if (this._data.isHighScore) {
             const hs = this.add.text(cx, creamY - 210, 'NEW HIGH SCORE!', {
@@ -54,7 +55,7 @@ export class WinScene extends BaseScene {
             });
         }
 
-        this.add.text(cx, creamY - 150, 'Level Complete!', {
+        this.add.text(cx, creamY - 200, 'Level Complete!', {
             fontFamily: 'Arial Black',
             fontSize: '36px',
             color: '#3a1a0e',
@@ -62,22 +63,27 @@ export class WinScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5);
 
-        this.add.image(cx - 90, creamY - 75, AssetKeys.STAR_FILLED).setDisplaySize(70, 70);
-        this.add.image(cx,       creamY - 85, AssetKeys.STAR_FILLED).setDisplaySize(80, 80);
-        this.add.image(cx + 90, creamY - 75, AssetKeys.STAR_EMPTY).setDisplaySize(70, 70);
+        this.add.image(cx - 90, creamY - 130, AssetKeys.STAR_FILLED).setDisplaySize(70, 70);
+        this.add.image(cx,       creamY - 135, AssetKeys.STAR_FILLED).setDisplaySize(80, 80);
+        this.add.image(cx + 90, creamY - 130, AssetKeys.STAR_EMPTY).setDisplaySize(70, 70);
 
-        this.add.image(cx, creamY + 20, AssetKeys.CHEST_CLOSED).setDisplaySize(240, 140);
+        this.add.image(cx, creamY + 40, AssetKeys.CHEST_CLOSED).setDisplaySize(240, 140);
 
-        this.add.image(cx - 90, creamY + 110, AssetKeys.COIN).setDisplaySize(80, 80);
-        this.add.text(cx - 65, creamY + 110, `+${this._data.score}`, {
+        // Posizioniamo le icone alle loro posizioni orizzontali originali
+        this.add.image(cx - 80, creamY + 170, AssetKeys.COIN).setDisplaySize(80, 80);
+        this.add.image(cx + 90, creamY + 170, AssetKeys.GEM).setDisplaySize(80, 80);
+
+        // Testo Monete
+        this.add.text(cx - 80, creamY + 230, `${this._data.score}`, {
             fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
-        }).setOrigin(0, 0.5);
-        this.add.image(cx + 50, creamY + 110, AssetKeys.GEM).setDisplaySize(80, 80);
-        this.add.text(cx + 75, creamY + 110, '+5', {
-            fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
-        }).setOrigin(0, 0.5);
+        }).setOrigin(0.5, 0.5);
 
-        createButton(this, cx, creamY + 300, 'PLAY AGAIN',
+        // Testo Gemme
+        this.add.text(cx + 90, creamY + 230, '1200', {
+            fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
+        }).setOrigin(0.5, 0.5);
+
+        createButton(this, cx, creamY + 450, 'PLAY AGAIN',
             () => this.scene.start('Game'),
             { width: 320, fontSize: '32px', diagId: 'win_play_again' });
     }

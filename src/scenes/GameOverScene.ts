@@ -24,7 +24,8 @@ export class GameOverScene extends BaseScene {
     create(): void {
         const cx     = GAME_WIDTH / 2;
         const cy     = GAME_HEIGHT / 2;
-        const PANEL  = 620;
+        const PANEL_DISPLAY_WIDTH = 750;
+        const PANEL_DISPLAY_HEIGHT = 950;
         const creamY = cy + 53;
 
         coverBackground(this, AssetKeys.BG_GAMEPLAY);
@@ -32,7 +33,7 @@ export class GameOverScene extends BaseScene {
         this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.55).setDepth(0);
 
         this.add.image(cx, cy, AssetKeys.PANEL_LOSE)
-            .setDisplaySize(PANEL, PANEL).setDepth(5);
+            .setDisplaySize(PANEL_DISPLAY_WIDTH, PANEL_DISPLAY_HEIGHT).setDepth(5);
 
         this.add.text(cx, creamY - 130, 'Game Over', {
             fontFamily: 'Arial Black',
@@ -42,13 +43,7 @@ export class GameOverScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(6);
 
-        this.add.text(cx, creamY + 10, 'Better luck next time!', {
-            fontFamily: 'Arial Black',
-            fontSize: '22px',
-            color: '#5a2a1e',
-            stroke: '#f4e5c2',
-            strokeThickness: 2,
-        }).setOrigin(0.5).setDepth(6);
+        this.add.image(cx, creamY - 30, AssetKeys.ADS_BADGE).setDepth(5);
 
         const highScore = saveManager.getHighScore();
 
@@ -68,7 +63,7 @@ export class GameOverScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(6);
 
-        const btn = createButton(this, cx, creamY + 300, 'TRY AGAIN',
+        const btn = createButton(this, cx, creamY + 450, 'TRY AGAIN',
             () => {
                 this.cameras.main.fadeOut(220, 0, 0, 0);
                 this.time.delayedCall(220, () => this.scene.start('Game'));
