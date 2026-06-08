@@ -42,6 +42,11 @@ export class Shooter {
     /** Colors currently present in the chain; empty = unconstrained */
     private _colorPool: MarbleColor[] = [];
 
+    // ── Idle breathing ─────────────────────────────────────────────────────────
+    private _breathingTween?: Phaser.Tweens.Tween;
+    /** Scale that corresponds to setDisplaySize(D,D) — texture may be larger than D. */
+    private _baseMarbleScale = 1;
+
     // ── Bomb visual ────────────────────────────────────────────────────────────
     private _bombMode = false;
     private _bombDisplay?: GameObjects.Container;
@@ -65,6 +70,10 @@ export class Shooter {
             .setDisplaySize(MARBLE_RADIUS * 2, MARBLE_RADIUS * 2)
             .setTint(MARBLE_COLOR_HEX[this._currentColor])
             .setDepth(6);
+        // Capture scale AFTER setDisplaySize so breathing tweens relative to it.
+        // Marble texture is larger than D, so scaleX != 1.0.
+        this._baseMarbleScale = this._marbleDisplay.scaleX;
+        this._startBreathing();
     }
 
     update(pointer: Phaser.Input.Pointer, canCharge: boolean): void {
@@ -135,6 +144,7 @@ export class Shooter {
         this._bombMode = on;
         if (on) {
             this._marbleDisplay.setVisible(false);
+            this._stopBreathing();
             this._glowGfx.clear();
             this._buildBombDisplay();
             this._bombDisplay!.setVisible(true);
@@ -142,6 +152,7 @@ export class Shooter {
             this._killBombVisuals();
             this._bombDisplay?.setVisible(false);
             this._marbleDisplay.setVisible(true);
+            this._startBreathing();
         }
     }
 
@@ -198,6 +209,7 @@ export class Shooter {
 
     /** Returns the colour that was loaded; advances to next. */
     consumeAndRoll(): MarbleColor {
+        this._stopBreathing();
         const c = this._currentColor;
         this._currentColor = this._rollColor();
         this._marbleDisplay.setTint(MARBLE_COLOR_HEX[this._currentColor]);
@@ -212,7 +224,10 @@ export class Shooter {
             displayHeight: D,
             duration: 160,
             ease: 'Back.easeOut',
-            onComplete: () => this._marbleDisplay.setDisplaySize(D, D),
+            onComplete: () => {
+                this._marbleDisplay.setDisplaySize(D, D);
+                this._startBreathing();
+            },
         });
         return c;
     }
@@ -238,6 +253,26 @@ export class Shooter {
             this._currentColor = this._rollColor();
             this._marbleDisplay.setTint(MARBLE_COLOR_HEX[this._currentColor]);
         }
+    }
+
+    private _startBreathing(): void {
+        if (this._breathingTween) return;
+        const base = this._baseMarbleScale;
+        this._breathingTween = this._scene.tweens.add({
+            targets: this._marbleDisplay,
+            scale: { from: base, to: base * 1.10 },
+            duration: 700,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+        });
+    }
+
+    private _stopBreathing(): void {
+        if (!this._breathingTween) return;
+        this._breathingTween.stop();
+        this._breathingTween = undefined;
+        this._marbleDisplay.setScale(this._baseMarbleScale);
     }
 
     private _rollColor(): MarbleColor {
