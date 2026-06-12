@@ -69,8 +69,10 @@ export class MarbleChain {
             if (s < 0 || s > this.arcPath.totalLength) {
                 marble.setVisible(false);
             } else {
+                const wasInvisible = !marble.visible;
                 marble.setVisible(true);
                 marble.setPathT(this.arcPath.tAt(s), this.arcPath.path, this.tmpVec);
+                if (wasInvisible) marble.playDropIn();
             }
             i++;
         });

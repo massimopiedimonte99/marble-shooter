@@ -119,6 +119,10 @@ export class GameScene extends BaseScene {
     private _fx!: ScreenEffects;
 
     // ── Danger ─────────────────────────────────────────────────────────────────
+    private _dangerOverlay!: Phaser.GameObjects.Graphics;
+    private _dangerState = false;
+    private _dangerTween?: Phaser.Tweens.Tween;
+    private _dangerHeartbeatTimer?: Phaser.Time.TimerEvent;
 
     // ── State ──────────────────────────────────────────────────────────────────
     private _frameN = 0;
@@ -281,6 +285,16 @@ export class GameScene extends BaseScene {
             fontSize: '28px',
             color: '#ffffff',
         }).setOrigin(0, 0.5).setDepth(16);
+
+        // ── Danger vignette ───────────────────────────────────────────────────────
+        this._dangerState = false;
+        this._dangerOverlay = this.add.graphics().setDepth(19).setAlpha(0);
+        this._dangerOverlay.fillStyle(0xff4d6d, 1);
+        const STRIP_W = 70;
+        this._dangerOverlay.fillRect(0, 0, GAME_WIDTH, STRIP_W);
+        this._dangerOverlay.fillRect(0, GAME_HEIGHT - STRIP_W, GAME_WIDTH, STRIP_W);
+        this._dangerOverlay.fillRect(0, STRIP_W, STRIP_W, GAME_HEIGHT - 2 * STRIP_W);
+        this._dangerOverlay.fillRect(GAME_WIDTH - STRIP_W, STRIP_W, STRIP_W, GAME_HEIGHT - 2 * STRIP_W);
 
         // ── Combo text ────────────────────────────────────────────────────────────
         this._comboText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT * 0.33, '', {
@@ -533,6 +547,11 @@ export class GameScene extends BaseScene {
             return;
         }
 
+        // ── Danger state ───────────────────────────────────────────────────────────
+        const isDanger = this.chain.headFraction >= 0.85;
+        if (isDanger && !this._dangerState) this._enterDanger();
+        else if (!isDanger && this._dangerState) this._exitDanger();
+
         this._frameN++;
         if (this._frameN % 60 === 0) {
             diag.log('frame_stats', {
@@ -656,7 +675,7 @@ export class GameScene extends BaseScene {
                                 this.tweens.add({
                                     targets: remaining,
                                     settleT: 0,
-                                    duration: 120,
+                                    duration: 180,
                                     ease: 'Quad.easeOut',
                                     onComplete: () => { if (!this._ended) playStep(nextSeed); },
                                 });
@@ -687,6 +706,42 @@ export class GameScene extends BaseScene {
             duration: RECOIL_MS,
             ease: 'Quad.easeOut',
             onComplete: () => { if (!this._ended) this.chain.frozen = false; },
+        });
+    }
+
+    private _enterDanger(): void {
+        if (this._dangerState || this._ended) return;
+        this._dangerState = true;
+        diag.log('chain_danger_enter', { headFraction: this.chain.headFraction });
+        this._dangerTween = this.tweens.add({
+            targets: this._dangerOverlay,
+            alpha: { from: 0.05, to: 0.22 },
+            duration: 600,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+        });
+        audioManager.playDanger();
+        this._dangerHeartbeatTimer = this.time.addEvent({
+            delay: 1200,
+            callback: () => audioManager.playDanger(),
+            loop: true,
+        });
+    }
+
+    private _exitDanger(): void {
+        if (!this._dangerState) return;
+        this._dangerState = false;
+        diag.log('chain_danger_exit', {});
+        this._dangerTween?.stop();
+        this._dangerTween = undefined;
+        this._dangerHeartbeatTimer?.remove(false);
+        this._dangerHeartbeatTimer = undefined;
+        this.tweens.add({
+            targets: this._dangerOverlay,
+            alpha: 0,
+            duration: 300,
+            ease: 'Quad.easeOut',
         });
     }
 
@@ -751,6 +806,7 @@ export class GameScene extends BaseScene {
 
     private _endRun(target: 'Win' | 'GameOver'): void {
         this._ended = true;
+        this._exitDanger();
         if (this._bombCtrl?.isLoaded) this._bombCtrl.unload('scene_end');
         this._spawnTimer?.remove(false);
         this.chain.frozen = true;
@@ -967,6 +1023,7 @@ export class GameScene extends BaseScene {
     }
 
     private _shutdown(): void {
+        this._exitDanger();
         eventBus.off(GameEvent.Match, this._onMatchHandler);
         eventBus.off(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
         eventBus.off(GameEvent.BombInserted, this._onBombInsertedHandler);

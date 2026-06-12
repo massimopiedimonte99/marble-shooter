@@ -17,7 +17,8 @@ export type DiagKind =
     | 'powerup_unavailable' | 'powerup_bomb_aim_enter'
     | 'powerup_bomb_canceled' | 'powerup_bomb_detonated' | 'powerup_bomb_dud'
     | 'powerup_bomb_loaded' | 'powerup_bomb_unloaded'
-    | 'powerup_bomb_fired'  | 'powerup_bomb_inserted' | 'powerup_bomb_impact';
+    | 'powerup_bomb_fired'  | 'powerup_bomb_inserted' | 'powerup_bomb_impact'
+    | 'chain_danger_enter' | 'chain_danger_exit';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 

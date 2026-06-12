@@ -17,6 +17,7 @@ export class Marble extends GameObjects.Sprite {
     public settleT = 0;
     private _settleFromX = 0;
     private _settleFromY = 0;
+    private _dropInTween?: Phaser.Tweens.Tween;
 
     constructor(scene: Phaser.Scene) {
         super(scene, 0, 0, AssetKeys.MARBLE_MASTER);
@@ -37,6 +38,25 @@ export class Marble extends GameObjects.Sprite {
 
     getColor(): MarbleColor {
         return this.marbleColor;
+    }
+
+    playDropIn(): void {
+        const D = MARBLE_RADIUS * 2;
+        // Kill only the previous drop-in tween, not all tweens on this marble.
+        // killTweensOf() destroys any multi-target tween that lists this marble as
+        // a co-target (e.g. _popMarble's settle tween), killing its onComplete and
+        // leaving settleT stuck mid-animation on the newly-inserted marble.
+        this._dropInTween?.stop();
+        this._dropInTween = undefined;
+        this.setDisplaySize(D * 0.5, D * 0.5);
+        this._dropInTween = this.scene.tweens.add({
+            targets: this,
+            displayWidth: D,
+            displayHeight: D,
+            duration: 220,
+            ease: 'Back.easeOut',
+            onComplete: () => { this._dropInTween = undefined; },
+        });
     }
 
     setPathT(t: number, path: Phaser.Curves.Path, out: Phaser.Math.Vector2): this {
