@@ -8,7 +8,7 @@ export type DiagKind =
     | 'scene_transition' | 'game_reset'
     | 'button_pressed'
     | 'chain_freeze_start' | 'chain_freeze_end'
-    | 'back_movement_start' | 'back_movement_end' | 'chain_retract'
+    | 'back_movement_start' | 'back_movement_end' | 'chain_retract' | 'chain_advance'
     | 'score_increment' | 'marble_pop'
     | 'save_load' | 'save_persist' | 'save_persist_error'
     | 'save_version_mismatch' | 'save_reset'

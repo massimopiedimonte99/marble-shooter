@@ -576,17 +576,19 @@ export class GameScene extends BaseScene {
         const targets: Marble[] = [m];
         this.tweens.killTweensOf(m);
         m.beginSettle(fromX, fromY);
-        // During an active cascade (chain.frozen=true), the cascade's inter-step settle
-        // tween owns the sibling marbles. Killing their tweens here would orphan that
-        // tween's onComplete and leave chain.frozen=true permanently.
+        // Head-side marbles (node.prev) slid forward one slot via advanceHead(1).
+        // Settle them so they glide smoothly instead of snapping.
+        // During an active cascade (chain.frozen=true), the cascade owns sibling tweens —
+        // skip to avoid orphaning its onComplete and leaving chain.frozen=true stuck.
         if (!this.chain.frozen) {
-            let n = m.node?.next ?? null;
+            let n = m.node?.prev ?? null;
             while (n) {
                 const nm = n.value;
                 this.tweens.killTweensOf(nm);
+                nm.setDisplaySize(D, D);      // cancel any stray drop-in scale
                 nm.beginSettle(nm.x, nm.y);
                 targets.push(nm);
-                n = n.next;
+                n = n.prev;
             }
         }
         this.tweens.add({

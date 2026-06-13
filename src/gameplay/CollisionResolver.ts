@@ -47,6 +47,7 @@ export class CollisionResolver {
             }
 
             const { afterIndex, shiftedCount, node: newNode } = this.chain.insertMarbleAfter(hit, m);
+            this.chain.advanceHead(1);
             eventBus.emit(GameEvent.MarbleInserted, { color: m.marbleColor, x: m.x, y: m.y, marble: m });
             diag.log('collision', { color: m.marbleColor, x: impactX, y: impactY });
             diag.log('chain_insert', {

@@ -9,9 +9,10 @@ export const CHAIN_SPEED = 0.00002; // Δt per ms
 
 // Marbles che riempiono la catena a inizio livello (payload del livello).
 export const CHAIN_INITIAL_MARBLES = 28;
-// Capacità del pool: DEVE superare la catena iniziale + inserimenti senza match
-// + proiettili in volo, altrimenti il cannone resta a secco e smette di sparare.
-export const MARBLE_POOL_SIZE = 64;
+// Capacità del pool: deve superare la capienza dell'intera path (~92 marble a 48px)
+// + invisible tail backlog + 1 in volo. Con head-advance il lose arriva naturalmente
+// (headFraction >= 1.0) prima che il pool si esaurisca.
+export const MARBLE_POOL_SIZE = 120;
 
 export const PROJECTILE_SPEED = 1.2;             // px/ms
 export const PROJECTILE_MAX_LIFETIME_MS = 3000;

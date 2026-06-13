@@ -84,6 +84,13 @@ export class MarbleChain {
         diag.log('chain_retract', { slots, headArcLen: this._headArcLen });
     }
 
+    /** Mirror of retractHead: called on non-bomb marble insertion to push the
+     *  head forward one slot (classic-Zuma "shooting grows the chain toward the hole"). */
+    advanceHead(slots: number): void {
+        this._headArcLen += slots * MARBLE_SPACING;
+        diag.log('chain_advance', { slots, headArcLen: this._headArcLen });
+    }
+
     forEachMarble(cb: (m: Marble) => void): void {
         this.chain.forEach((m) => cb(m));
     }
