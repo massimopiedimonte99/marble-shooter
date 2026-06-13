@@ -8,6 +8,7 @@ export class PreloadScene extends BaseScene {
     }
 
     preload(): void {
+        this.fadeIn(200);
         const cx = GAME_WIDTH / 2;
         const cy = GAME_HEIGHT / 2;
         const barW = 400;

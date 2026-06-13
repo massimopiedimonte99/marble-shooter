@@ -30,10 +30,18 @@ export class WinScene extends BaseScene {
         const creamY = cy + 53;
 
         coverBackground(this, AssetKeys.BG_GAMEPLAY);
+        this.fadeIn();
         this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.45);
 
-        this.add.image(cx, cy, AssetKeys.PANEL_VICTORY)
+        // Panel slides in from above with a soft bounce, in parallel with the fade.
+        const panel = this.add.image(cx, cy - 200, AssetKeys.PANEL_VICTORY)
             .setDisplaySize(PANEL_DISPLAY_WIDTH, PANEL_DISPLAY_HEIGHT);
+        this.tweens.add({
+            targets: panel,
+            y: cy,
+            duration: 500,
+            ease: 'Back.easeOut',
+        });
 
         if (this._data.isHighScore) {
             const hs = this.add.text(cx, creamY - 210, 'NEW HIGH SCORE!', {
@@ -84,7 +92,7 @@ export class WinScene extends BaseScene {
         }).setOrigin(0.5, 0.5);
 
         createButton(this, cx, creamY + 450, 'PLAY AGAIN',
-            () => this.scene.start('Game'),
+            () => this.fadeOutTo('Game', 280),
             { width: 320, fontSize: '32px', diagId: 'win_play_again' });
     }
 }

@@ -32,8 +32,15 @@ export class GameOverScene extends BaseScene {
 
         this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.55).setDepth(0);
 
-        this.add.image(cx, cy, AssetKeys.PANEL_LOSE)
+        // Panel slides in from above with a soft bounce, in parallel with the fade.
+        const panel = this.add.image(cx, cy - 200, AssetKeys.PANEL_LOSE)
             .setDisplaySize(PANEL_DISPLAY_WIDTH, PANEL_DISPLAY_HEIGHT).setDepth(5);
+        this.tweens.add({
+            targets: panel,
+            y: cy,
+            duration: 500,
+            ease: 'Back.easeOut',
+        });
 
         this.add.text(cx, creamY - 130, 'Game Over', {
             fontFamily: 'Arial Black',
@@ -64,13 +71,10 @@ export class GameOverScene extends BaseScene {
         }).setOrigin(0.5).setDepth(6);
 
         const btn = createButton(this, cx, creamY + 450, 'TRY AGAIN',
-            () => {
-                this.cameras.main.fadeOut(220, 0, 0, 0);
-                this.time.delayedCall(220, () => this.scene.start('Game'));
-            },
+            () => this.fadeOutTo('Game', 280),
             { width: 320, fontSize: '32px', diagId: 'gameover_retry' });
         btn.container.setDepth(6);
 
-        this.cameras.main.fadeIn(180, 0, 0, 0);
+        this.fadeIn(180);
     }
 }

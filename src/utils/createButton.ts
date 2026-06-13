@@ -50,12 +50,25 @@ export function createButton(
         .setSize(width, height)
         .setInteractive({ useHandCursor: true });
 
-    container.on('pointerover', () => bg.setAlpha(0.85));
-    container.on('pointerout',  () => bg.setAlpha(1.0));
+    const tweenScale = (scale: number, duration: number, ease = 'Quad.easeOut') => {
+        scene.tweens.killTweensOf(container);
+        scene.tweens.add({ targets: container, scale, duration, ease });
+    };
+
+    container.on('pointerover', () => tweenScale(1.04, 120));
+    container.on('pointerout',  () => tweenScale(1.0, 120));
     container.on('pointerdown', () => {
+        tweenScale(0.96, 80);
+        bg.setTint(0xd0d0d0);
         diag.log('button_pressed', { id: diagId });
         onClick();
     });
+    const release = () => {
+        tweenScale(1.0, 120);
+        bg.clearTint();
+    };
+    container.on('pointerup', release);
+    container.on('pointerupoutside', release);
 
     return {
         container, bg, text, width, height,

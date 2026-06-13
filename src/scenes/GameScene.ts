@@ -112,6 +112,8 @@ export class GameScene extends BaseScene {
     private _scoreText!: Phaser.GameObjects.Text;
     private _comboText!: Phaser.GameObjects.Text;
     private _score = 0;
+    private _hudCoinIcon!: Phaser.GameObjects.Image;
+    private _shelfTweens: Phaser.Tweens.Tween[] = [];
 
     // ── Systems ────────────────────────────────────────────────────────────────
     private _aimGuide!: AimGuide;
@@ -147,7 +149,7 @@ export class GameScene extends BaseScene {
         const base = coinReward(p.count);
         const reward = base * multi;
         this._score += reward;
-        this._scoreText.setText(String(this._score));
+        this._bumpScore(this._score);
 
         this._spawnFloatingScore(reward, p.position.x, p.position.y);
         this._spawnParticleBurst(p.position.x, p.position.y, p.color);
@@ -181,6 +183,8 @@ export class GameScene extends BaseScene {
         this._frameN = 0;
         this._score = 0;
         this._flowOffset = 0;
+        this._shelfTweens = [];
+        this.fadeIn();
         const POWERUP_SIZE = 120;
         const POWERUP_SPACING = 110;
         const POWERUP_COUNT = 4;
@@ -278,7 +282,7 @@ export class GameScene extends BaseScene {
         const scoreBg = this.add.graphics().setDepth(15);
         scoreBg.fillStyle(0x2d4f5c, 0.85);
         scoreBg.fillRoundedRect(GAME_WIDTH / 2 - 110, SCORE_Y - 30, 220, 60, 25);
-        this.add.image(GAME_WIDTH / 2 - 75, SCORE_Y, AssetKeys.COIN)
+        this._hudCoinIcon = this.add.image(GAME_WIDTH / 2 - 75, SCORE_Y, AssetKeys.COIN)
             .setDisplaySize(40, 40).setDepth(16);
         this._scoreText = this.add.text(GAME_WIDTH / 2 - 45, SCORE_Y, '0', {
             fontFamily: 'Arial Black',
@@ -364,13 +368,18 @@ export class GameScene extends BaseScene {
         });
 
         this._refreshBombBadge();
+        this._addShelfIdlePulse(this._bombIcon, 0);
 
-        // Remaining 3 power-ups — placeholder handlers
+        // Remaining 3 power-ups — placeholder handlers, dimmed (inventory is
+        // permanently 0 until Fase 3.1). Hand cursor stays: clickable, but dim
+        // signals unavailable.
         powerUps.slice(1).forEach((key, i) => {
-            this.add.image(startX + (i + 1) * POWERUP_SPACING, POWERUP_Y, key)
+            const icon = this.add.image(startX + (i + 1) * POWERUP_SPACING, POWERUP_Y, key)
                 .setDisplaySize(POWERUP_SIZE, POWERUP_SIZE).setDepth(13)
+                .setAlpha(0.45)
                 .setInteractive({ useHandCursor: true })
-                .on('pointerdown', () => diag.log('button_pressed', { id: key }));
+                .on('pointerdown', () => diag.log('powerup_unavailable', { id: key }));
+            this._addShelfIdlePulse(icon, i + 1);
         });
 
         if (import.meta.env.DEV) {
@@ -782,6 +791,36 @@ export class GameScene extends BaseScene {
     //     });
     // }
 
+    /** Update the score text with a soft pulse (D1). */
+    private _bumpScore(newValue: number): void {
+        this._scoreText.setText(String(newValue));
+        this.tweens.killTweensOf(this._scoreText);
+        this._scoreText.setScale(1);
+        this.tweens.add({
+            targets: this._scoreText,
+            scale: 1.15,
+            duration: 120,
+            ease: 'Sine.easeOut',
+            yoyo: true,
+        });
+        diag.log('score_pulse', { score: newValue });
+    }
+
+    /** Very soft infinite breathing on a shelf icon, staggered per slot (D5). */
+    private _addShelfIdlePulse(icon: Phaser.GameObjects.Image, index: number): void {
+        const baseScale = icon.scaleX;
+        this._shelfTweens.push(this.tweens.add({
+            targets: icon,
+            scaleX: baseScale * 1.02,
+            scaleY: baseScale * 1.02,
+            duration: 2400,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: index * 600,
+        }));
+    }
+
     private _spawnFloatingScore(amount: number, x: number, y: number): void {
         const txt = this.add.text(0, 0, `+${amount}`, {
             fontFamily: 'Arial Black', fontSize: '40px', color: '#ffe066', strokeThickness: 5,
@@ -797,7 +836,19 @@ export class GameScene extends BaseScene {
             x: this._scoreText.x, y: this._scoreText.y,
             scale: { from: 1, to: 0.55 }, alpha: { from: 1, to: 0 },
             duration: 700, ease: 'Cubic.easeIn',
-            onComplete: () => group.destroy(),
+            onComplete: () => {
+                group.destroy();
+                // Coin HUD icon spins once when the floating score lands (D2).
+                this.tweens.killTweensOf(this._hudCoinIcon);
+                this._hudCoinIcon.setRotation(0);
+                this.tweens.add({
+                    targets: this._hudCoinIcon,
+                    rotation: Math.PI * 2,
+                    duration: 400,
+                    ease: 'Cubic.easeOut',
+                });
+                diag.log('coin_hud_spin');
+            },
         });
     }
 
@@ -820,13 +871,10 @@ export class GameScene extends BaseScene {
         const { isHighScore, previous } = saveManager.submitScore(this._score);
         diag.log('score_submitted', { score: this._score, isHighScore, previousHigh: previous, target });
 
-        this.cameras.main.fadeOut(280, 0, 0, 0);
-        this.time.delayedCall(280, () => {
-            this.scene.start(target === 'Win' ? 'Win' : 'GameOver', {
-                score: this._score,
-                isHighScore,
-                previousHigh: previous,
-            });
+        this.fadeOutTo(target === 'Win' ? 'Win' : 'GameOver', 280, {
+            score: this._score,
+            isHighScore,
+            previousHigh: previous,
         });
     }
 
@@ -1009,6 +1057,17 @@ export class GameScene extends BaseScene {
             this._bombIcon.setAlpha(1);
             this._bombBadgeText.setText(`×${inv}`);
             this._bombBadge.setVisible(true);
+            // Pop the badge on refresh (D4) — only when shown, never on hide.
+            this.tweens.killTweensOf(this._bombBadge);
+            this._bombBadge.setScale(1);
+            this.tweens.add({
+                targets: this._bombBadge,
+                scale: 1.3,
+                duration: 200,
+                ease: 'Back.easeOut',
+                yoyo: true,
+            });
+            diag.log('bomb_badge_animate', { inv });
         }
     }
 
@@ -1026,6 +1085,8 @@ export class GameScene extends BaseScene {
 
     private _shutdown(): void {
         this._exitDanger();
+        this._shelfTweens.forEach(t => t.stop());
+        this._shelfTweens = [];
         eventBus.off(GameEvent.Match, this._onMatchHandler);
         eventBus.off(GameEvent.MarbleInserted, this._onMarbleInsertedHandler);
         eventBus.off(GameEvent.BombInserted, this._onBombInsertedHandler);

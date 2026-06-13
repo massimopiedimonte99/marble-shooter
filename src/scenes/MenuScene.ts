@@ -13,7 +13,7 @@ export class MenuScene extends BaseScene {
         const cx = GAME_WIDTH / 2;
 
         coverBackground(this, AssetKeys.BG_MENU);
-        this.cameras.main.fadeIn(300, 0, 0, 0);
+        this.fadeIn();
 
         // ── Logo — breathes gently ───────────────────────────────────────────────
         const logo = this.add.image(cx, GAME_HEIGHT * 0.25, AssetKeys.LOGO).setDepth(5);
@@ -33,8 +33,7 @@ export class MenuScene extends BaseScene {
 
         createButton(this, cx, BTN_Y, 'PLAY', () => {
             this.eventBus.emit(GameEvent.MenuPlayPressed);
-            this.cameras.main.fadeOut(240, 0, 0, 0);
-            this.time.delayedCall(240, () => this.scene.start('Game'));
+            this.fadeOutTo('Game', 280);
         }, { width: 300, diagId: 'menu_play' });
 
         // ── Sound toggle ─────────────────────────────────────────────────────────
