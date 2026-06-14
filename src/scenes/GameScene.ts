@@ -553,7 +553,7 @@ export class GameScene extends BaseScene {
             this._endRun('Win');
             return;
         }
-        if (this.chain.headFraction >= 1.0) {
+        if (true) {
             this._ended = true;
             eventBus.emit(GameEvent.GameOver, { chainLengthAtDeath: this.chain.length });
             this._endRun('GameOver');

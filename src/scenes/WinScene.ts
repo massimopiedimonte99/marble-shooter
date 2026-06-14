@@ -44,7 +44,7 @@ export class WinScene extends BaseScene {
         });
 
         if (this._data.isHighScore) {
-            const hs = this.add.text(cx, creamY - 210, 'NEW HIGH SCORE!', {
+            const hs = this.add.text(cx, creamY - 270, 'NEW HIGH SCORE!', {
                 fontFamily: 'Arial Black',
                 fontSize: '36px',
                 color: '#ffe066',
@@ -77,17 +77,9 @@ export class WinScene extends BaseScene {
 
         this.add.image(cx, creamY + 40, AssetKeys.CHEST_CLOSED).setDisplaySize(240, 140);
 
-        // Posizioniamo le icone alle loro posizioni orizzontali originali
-        this.add.image(cx - 80, creamY + 170, AssetKeys.COIN).setDisplaySize(80, 80);
-        this.add.image(cx + 90, creamY + 170, AssetKeys.GEM).setDisplaySize(80, 80);
+        this.add.image(cx, creamY + 170, AssetKeys.COIN).setDisplaySize(80, 80);
 
-        // Testo Monete
-        this.add.text(cx - 80, creamY + 230, `${this._data.score}`, {
-            fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
-        }).setOrigin(0.5, 0.5);
-
-        // Testo Gemme
-        this.add.text(cx + 90, creamY + 230, '1200', {
+        this.add.text(cx, creamY + 230, `${this._data.score}`, {
             fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
         }).setOrigin(0.5, 0.5);
 

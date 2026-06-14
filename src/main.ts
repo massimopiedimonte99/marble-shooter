@@ -1,5 +1,6 @@
 import { AUTO, Game, Scale } from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '@/constants/Config';
+import '@/levels/LevelManager';
 import { BootScene } from '@/scenes/BootScene';
 import { PreloadScene } from '@/scenes/PreloadScene';
 import { MenuScene } from '@/scenes/MenuScene';

@@ -42,7 +42,7 @@ export class GameOverScene extends BaseScene {
             ease: 'Back.easeOut',
         });
 
-        this.add.text(cx, creamY - 130, 'Game Over', {
+        this.add.text(cx, creamY - 200, 'Game Over', {
             fontFamily: 'Arial Black',
             fontSize: '44px',
             color: '#3a1a0e',
@@ -50,19 +50,19 @@ export class GameOverScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(6);
 
-        this.add.image(cx, creamY - 30, AssetKeys.ADS_BADGE).setDepth(5);
+        this.add.image(cx, creamY - 30, AssetKeys.ADS_BADGE).setDepth(5).setScale(1.2);
 
         const highScore = saveManager.getHighScore();
 
-        this.add.text(cx, creamY + 80, `Score: ${this._data.score}`, {
+        this.add.text(cx, creamY + 150, `Score: ${this._data.score}`, {
             fontFamily: 'Arial Black',
-            fontSize: '28px',
+            fontSize: '35px',
             color: '#3a1a0e',
             stroke: '#f4e5c2',
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(6);
 
-        this.add.text(cx, creamY + 125, `Best: ${highScore}`, {
+        this.add.text(cx, creamY + 200, `Best: ${highScore}`, {
             fontFamily: 'Arial Black',
             fontSize: '22px',
             color: '#5a2a1e',

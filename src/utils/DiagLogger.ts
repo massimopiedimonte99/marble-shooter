@@ -11,7 +11,7 @@ export type DiagKind =
     | 'back_movement_start' | 'back_movement_end' | 'chain_retract' | 'chain_advance'
     | 'score_increment' | 'marble_pop'
     | 'save_load' | 'save_persist' | 'save_persist_error'
-    | 'save_version_mismatch' | 'save_reset'
+    | 'save_version_mismatch' | 'save_reset' | 'save_migration_v1_to_v2'
     | 'score_submitted'
     | 'win_scene_init' | 'gameover_scene_init'
     | 'powerup_unavailable' | 'powerup_bomb_aim_enter'
