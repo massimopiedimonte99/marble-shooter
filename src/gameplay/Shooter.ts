@@ -17,6 +17,13 @@ export function hslToHex(h: number, s: number, l: number): number {
     return (Math.round((r + m) * 255) << 16) | (Math.round((g + m) * 255) << 8) | Math.round((b + m) * 255);
 }
 
+/** Muted rainbow cycle shared by ALL bomb visuals (~2 s full rotation).
+ *  Desaturated on purpose — full-saturation HSL reads too harsh on the flat
+ *  cartoon palette. Single source of truth: tune s/l here only. */
+export function bombRainbowHex(time: number): number {
+    return hslToHex((time * 0.0005) % 1, 0.55, 0.6);
+}
+
 const SHOOTER_SIZE  = 240;
 const MAX_RECOIL    = 18;
 const RECOIL_LERP   = 0.15;
@@ -94,21 +101,20 @@ export class Shooter {
         if (this._bombMode) {
             this._glowGfx.clear();
             if (this._bombDisplay) {
-                // Faster rainbow cycle (~2 s full rotation)
-                const col = hslToHex((time * 0.0005) % 1, 1.0, 0.55);
+                const col = bombRainbowHex(time);
                 (this._bombDisplay.list[0] as GameObjects.Image).setTint(col);
                 const mx = this._bombDisplay.x;
                 const my = this._bombDisplay.y;
                 const r  = MARBLE_RADIUS;
-                // Crisp white inner ring
-                this._glowGfx.lineStyle(2, 0xffffff, 1.0);
+                // Soft white inner ring
+                this._glowGfx.lineStyle(2, 0xffffff, 0.8);
                 this._glowGfx.strokeCircle(mx, my, r + 2);
-                // Bold opaque colour ring
-                this._glowGfx.lineStyle(5, col, 1.0);
+                // Colour ring — muted, semi-transparent
+                this._glowGfx.lineStyle(4, col, 0.7);
                 this._glowGfx.strokeCircle(mx, my, r + 9);
-                // Pulsing outer "danger" ring (beats ~120bpm)
+                // Pulsing outer "danger" ring (beats ~120bpm), kept faint
                 const beat = Math.abs(Math.sin(time * 0.006));
-                this._glowGfx.lineStyle(3, col, beat);
+                this._glowGfx.lineStyle(3, col, beat * 0.6);
                 this._glowGfx.strokeCircle(mx, my, r + 18 + beat * 10);
             }
             return;
@@ -260,8 +266,8 @@ export class Shooter {
         const base = this._baseMarbleScale;
         this._breathingTween = this._scene.tweens.add({
             targets: this._marbleDisplay,
-            scale: { from: base, to: base * 1.10 },
-            duration: 700,
+            scale: { from: base, to: base * 1.06 },
+            duration: 1000,
             ease: 'Sine.easeInOut',
             yoyo: true,
             repeat: -1,

@@ -12,7 +12,7 @@ import { MatchDetector } from '@/gameplay/MatchDetector';
 import type { LinkedListNode } from '@/gameplay/MarbleChain';
 import { MarblePool } from '@/pool/MarblePool';
 import { MarbleChain } from '@/gameplay/MarbleChain';
-import { Shooter, hslToHex } from '@/gameplay/Shooter';
+import { Shooter, bombRainbowHex } from '@/gameplay/Shooter';
 import { ProjectilePool } from '@/pool/ProjectilePool';
 import { CollisionResolver } from '@/gameplay/CollisionResolver';
 import { AimGuide } from '@/gameplay/AimGuide';
@@ -271,8 +271,8 @@ export class GameScene extends BaseScene {
             lifespan: 220,
             speed: { min: 30, max: 80 },
             scale: { start: 0.06, end: 0 },
-            alpha: { start: 0.85, end: 0 },
-            tint: [0xff4d6d, 0xff8c4d, 0xffd84d],
+            alpha: { start: 0.65, end: 0 },
+            tint: [0xd98a93, 0xd9a878, 0xd9c878],
             emitting: false,
             blendMode: 'ADD',
         }).setDepth(15);
@@ -346,9 +346,13 @@ export class GameScene extends BaseScene {
             .setInteractive({ useHandCursor: true });
 
         // ── Inventory badge: dark disc + "×N" text, top-right of icon ───────────
+        // Coral disc + white ring — pops against the dark shelf so an available
+        // bomb reads clearly different from the dimmed placeholder power-ups.
         const badgeGfx = this.add.graphics();
-        badgeGfx.fillStyle(0x2d4f5c, 0.95);
+        badgeGfx.fillStyle(0xe87363, 1);
         badgeGfx.fillCircle(0, 0, 16);
+        badgeGfx.lineStyle(2.5, 0xffffff, 0.9);
+        badgeGfx.strokeCircle(0, 0, 16);
         this._bombBadgeText = this.add.text(0, 0, '×1', {
             fontFamily: 'Arial Black', fontSize: '16px', color: '#ffffff',
         }).setOrigin(0.5);
@@ -488,7 +492,7 @@ export class GameScene extends BaseScene {
             m.y += p.vy * delta;
             p.lifeMs += delta;
             // Bomb: same rainbow tint as the cannon display marble
-            if (p.isBomb) m.setTint(hslToHex((_time * 0.0005) % 1, 1.0, 0.55));
+            if (p.isBomb) m.setTint(bombRainbowHex(_time));
             const oob = m.x < -32 || m.x > GAME_WIDTH + 32 || m.y < -32 || m.y > GAME_HEIGHT + 32;
             if (p.lifeMs > PROJECTILE_MAX_LIFETIME_MS || oob) {
                 this.marblePool.release(m); p.marble = null; this.projectilePool.release(p);
@@ -538,7 +542,7 @@ export class GameScene extends BaseScene {
 
         // ── Aim guide ──────────────────────────────────────────────────────────────
         const colorHex = this._bombCtrl.isLoaded
-            ? hslToHex((_time * 0.0005) % 1, 1.0, 0.55)
+            ? bombRainbowHex(_time)
             : MARBLE_COLOR_HEX[this.shooter.getNextColor()];
         this._aimGuide.update(pointer, this.shooter.x, this.shooter.y, colorHex, delta, inAim);
 
@@ -891,7 +895,7 @@ export class GameScene extends BaseScene {
         // 1. Funzione per mantenere vivo l'effetto arcobaleno nella catena
         const animateBomb = (time: number) => {
             if (bombMarble && bombMarble.active) {
-                bombMarble.setTint(hslToHex((time * 0.0005) % 1, 1.0, 0.55));
+                bombMarble.setTint(bombRainbowHex(time));
             }
         };
         
