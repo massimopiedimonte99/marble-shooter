@@ -55,7 +55,7 @@ function generateLevel(id: number): LevelDefinition {
     const avgRunLength         = +lerp(d.avgRunStart, d.avgRunEnd).toFixed(2);
     const chainSequence        = generateChainSequence(totalMarbles, colorCount, avgRunLength);
 
-    const baseScore = totalMarbles * 50 * chainSpeedMultiplier;
+    const baseScore = totalMarbles * 7 * chainSpeedMultiplier;
     return {
         id, chapterId: chapter.id, chapterIndex,
         totalMarbles, colorCount, chainSpeedMultiplier, avgRunLength, chainSequence,

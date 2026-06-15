@@ -24,6 +24,12 @@ function clamp(v: number, min: number, max: number): number {
     return Math.min(max, Math.max(min, v));
 }
 
+function formatCoins(n: number): string {
+    if (n >= 10000) return `${Math.round(n / 1000)}K`;
+    if (n >= 1000)  return `${(n / 1000).toFixed(1)}K`;
+    return String(n);
+}
+
 // ── Inverted layout: level 1 at BOTTOM (large y), level 200 at TOP (small y) ─
 function getLevelY(id: number): number {
     const chapterIdx = Math.floor((id - 1) / 20);
@@ -189,7 +195,7 @@ export class MapScene extends BaseScene {
                 }).setOrigin(0.5, 0.5));
             }
 
-            if (progress && progress.stars > 0) {
+            if (progress !== null) {
                 for (let s = 0; s < 3; s++) {
                     nc.add(this.add.image(-28 + s * 28, 40,
                         s < progress.stars ? AssetKeys.STAR_FILLED : AssetKeys.STAR_EMPTY)
@@ -275,7 +281,7 @@ export class MapScene extends BaseScene {
             .setDisplaySize(36, 36).setDepth(20);
 
         this._coinText = this.add.text(PILL_L + 54, CY,
-            String(saveManager.getTotalCoins()), {
+            formatCoins(saveManager.getTotalCoins()), {
                 fontFamily: 'Arial Black',
                 fontSize: '28px',
                 color: '#3a1a0e',
