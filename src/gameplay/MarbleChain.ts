@@ -40,6 +40,7 @@ export class MarbleChain {
     private readonly arcPath: ArcLengthPath;
     /** pixels / ms — keeps the same traversal time as the old t-based speed */
     private readonly speedPx: number;
+    private _speedMultiplier = 1;
     private readonly tmpVec = new PhaserMath.Vector2();
 
     constructor(
@@ -59,9 +60,13 @@ export class MarbleChain {
         m.node = node;
     }
 
+    setSpeedMultiplier(m: number): void {
+        this._speedMultiplier = m;
+    }
+
     update(_time: number, delta: number): void {
         if (!this.frozen) {
-            this._headArcLen += this.speedPx * delta;
+            this._headArcLen += this.speedPx * this._speedMultiplier * delta;
         }
         let i = 0;
         this.chain.forEach((marble) => {

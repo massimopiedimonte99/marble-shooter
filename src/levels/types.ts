@@ -1,10 +1,16 @@
+import type { MarbleColor } from '@/gameplay/MarbleColor';
+
 export interface LevelDefinition {
     id: number;
     chapterId: number;
     chapterIndex: number;
-    chainLength: number;
+
+    totalMarbles: number;
     colorCount: number;
-    chainSpeed: number;
+    chainSpeedMultiplier: number;
+    avgRunLength: number;
+    chainSequence: MarbleColor[];
+
     scoreFor1Star: number;
     scoreFor2Stars: number;
     scoreFor3Stars: number;

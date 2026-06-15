@@ -2,7 +2,8 @@ import { Curves, Geom } from 'phaser';
 import { BaseScene } from '@/scenes/BaseScene';
 import {
     GAME_WIDTH, GAME_HEIGHT,
-    MARBLE_RADIUS, CHAIN_INITIAL_MARBLES, PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
+    MARBLE_RADIUS, MARBLE_SPACING, CHAIN_INITIAL_MARBLES,
+    PROJECTILE_SPEED, PROJECTILE_MAX_LIFETIME_MS,
 } from '@/constants/Config';
 import { AssetKeys } from '@/constants/AssetKeys';
 import { coverBackground } from '@/utils/coverBackground';
@@ -24,7 +25,9 @@ import { eventBus } from '@/events/EventBus';
 import { GameEvent } from '@/events/EventTypes';
 import type { EventPayloads } from '@/events/EventTypes';
 import { audioManager } from '@/audio/AudioManager';
+import { AudioKeys } from '@/audio/AudioKeys';
 import { saveManager } from '@/state/SaveManager';
+import { levelManager, generateChainSequence } from '@/levels/LevelManager';
 
 const INSERT_SETTLE_MS = 90;
 const RECOIL_MS = 200;
@@ -129,7 +132,6 @@ export class GameScene extends BaseScene {
     // ── State ──────────────────────────────────────────────────────────────────
     private _pendingLevelId: number | null = null;
     private _frameN = 0;
-    private _spawnTimer?: Phaser.Time.TimerEvent;
     private _ended = false;
     private _chainEverPopulated = false;
     private _ignoreNextPointerUp = false;
@@ -153,6 +155,7 @@ export class GameScene extends BaseScene {
         this._bumpScore(this._score);
 
         this._spawnFloatingScore(reward, p.position.x, p.position.y);
+        audioManager.play(AudioKeys.COIN_PICKUP);
         this._spawnParticleBurst(p.position.x, p.position.y, p.color);
 
         this._fx.shake(p.count >= 4 ? 6 : 3, p.count >= 4 ? 180 : 120);
@@ -189,6 +192,16 @@ export class GameScene extends BaseScene {
         this._score = 0;
         this._flowOffset = 0;
         this._shelfTweens = [];
+
+        const _level = this._pendingLevelId ? levelManager.getLevel(this._pendingLevelId) : null;
+        const cfg = _level ? {
+            chainSequence:        _level.chainSequence,
+            chainSpeedMultiplier: _level.chainSpeedMultiplier,
+        } : {
+            chainSequence:        generateChainSequence(CHAIN_INITIAL_MARBLES, MARBLE_COLOR_COUNT, 3.0),
+            chainSpeedMultiplier: 1.0,
+        };
+
         this.fadeIn();
         const POWERUP_SIZE = 120;
         const POWERUP_SPACING = 110;
@@ -243,6 +256,20 @@ export class GameScene extends BaseScene {
         // ── Gameplay objects ─────────────────────────────────────────────────────
         this.marblePool = new MarblePool(this);
         this.chain = new MarbleChain(path, this.marblePool);
+
+        // Zuma initial rush: chain starts 5× fast, eases to level speed over 1s.
+        // This carries burst marbles from path entry (s=0) into view quickly.
+        const RUSH_MULT = 5.0;
+        const _rushRef = { v: RUSH_MULT };
+        this.chain.setSpeedMultiplier(cfg.chainSpeedMultiplier * RUSH_MULT);
+        this.tweens.add({
+            targets: _rushRef,
+            v: 1.0,
+            duration: 1000,
+            ease: 'Sine.easeOut',
+            onUpdate: () => this.chain.setSpeedMultiplier(cfg.chainSpeedMultiplier * _rushRef.v),
+        });
+
         this.projectilePool = new ProjectilePool();
         this.shooter = new Shooter(this, GAME_WIDTH / 2, GAME_HEIGHT / 2);
         this.resolver = new CollisionResolver(this.chain, this.projectilePool);
@@ -398,19 +425,20 @@ export class GameScene extends BaseScene {
         }
 
         // ── Marble spawn ──────────────────────────────────────────────────────────
-        let lastSpawnColor = Math.floor(Math.random() * MARBLE_COLOR_COUNT) as MarbleColor;
-        this._spawnTimer = this.time.addEvent({
-            delay: 200,
-            repeat: CHAIN_INITIAL_MARBLES - 1,
-            callback: () => {
-                const color = Math.random() < 0.3
-                    ? lastSpawnColor
-                    : Math.floor(Math.random() * MARBLE_COLOR_COUNT) as MarbleColor;
-                lastSpawnColor = color;
-                this.chain.spawnMarble(color);
-                this._chainEverPopulated = true;
-            },
+        diag.log('level_loaded', {
+            levelId: this._pendingLevelId,
+            totalMarbles: cfg.chainSequence.length,
+            chainSpeedMultiplier: cfg.chainSpeedMultiplier,
         });
+
+        // Pre-spawn the entire chain. All marbles start at s<0 (behind the path
+        // entry) and become visible one-by-one as the rush carries the head forward.
+        // The color sequence is pre-generated with run lengths tuned to the level's
+        // avgRunLength, so difficulty is baked in — no mid-level adjustments needed.
+        for (const color of cfg.chainSequence) {
+            this.chain.spawnMarble(color);
+        }
+        this._chainEverPopulated = cfg.chainSequence.length > 0;
 
         // ── Input ─────────────────────────────────────────────────────────────────
         // Suppress the leftover pointerup from the menu "Play" button only when the
@@ -870,7 +898,6 @@ export class GameScene extends BaseScene {
         this._ended = true;
         this._exitDanger();
         if (this._bombCtrl?.isLoaded) this._bombCtrl.unload('scene_end');
-        this._spawnTimer?.remove(false);
         this.chain.frozen = true;
         this.shooter.setEnabled(false);
         this.projectilePool.forEachAlive((p) => {
@@ -880,10 +907,22 @@ export class GameScene extends BaseScene {
         const { isHighScore, previous } = saveManager.submitScore(this._score);
         diag.log('score_submitted', { score: this._score, isHighScore, previousHigh: previous, target });
 
+        let stars: 0 | 1 | 2 | 3 = 0;
+        if (target === 'Win' && this._pendingLevelId) {
+            const level = levelManager.getLevel(this._pendingLevelId);
+            stars = levelManager.getStarsForScore(level, this._score);
+            levelManager.markCompleted(this._pendingLevelId, stars);
+            diag.log('level_completed', { levelId: this._pendingLevelId, score: this._score, stars });
+        } else if (target === 'GameOver' && this._pendingLevelId) {
+            diag.log('level_failed', { levelId: this._pendingLevelId, score: this._score });
+        }
+
         this.fadeOutTo(target === 'Win' ? 'Win' : 'GameOver', 280, {
             score: this._score,
             isHighScore,
             previousHigh: previous,
+            levelId: this._pendingLevelId,
+            stars,
         });
     }
 

@@ -10,4 +10,5 @@ export enum AudioKeys {
     BOMB_CHARGE    = 'BOMB_CHARGE',
     BOMB_FUSE      = 'BOMB_FUSE',
     BOMB_DETONATE  = 'BOMB_DETONATE',
+    COIN_PICKUP    = 'COIN_PICKUP',
 }

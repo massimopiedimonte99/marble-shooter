@@ -4,10 +4,13 @@ import { AssetKeys } from '@/constants/AssetKeys';
 import { coverBackground } from '@/utils/coverBackground';
 import { createButton } from '@/utils/createButton';
 import { diag } from '@/utils/DiagLogger';
+import { levelManager } from '@/levels/LevelManager';
 import type { EndRunSceneData } from '@/scenes/types';
 
 export class WinScene extends BaseScene {
     private _data: EndRunSceneData = { score: 0, isHighScore: false, previousHigh: 0 };
+    private _levelId: number | null = null;
+    private _starsEarned: 0 | 1 | 2 | 3 = 0;
 
     constructor() {
         super('Win');
@@ -19,7 +22,9 @@ export class WinScene extends BaseScene {
             isHighScore: data?.isHighScore ?? false,
             previousHigh: data?.previousHigh ?? 0,
         };
-        diag.log('win_scene_init', { ...this._data });
+        this._levelId = data?.levelId ?? null;
+        this._starsEarned = data?.stars ?? 0;
+        diag.log('win_scene_init', { ...this._data, levelId: this._levelId, stars: this._starsEarned });
     }
 
     create(): void {
@@ -71,9 +76,15 @@ export class WinScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5);
 
-        this.add.image(cx - 90, creamY - 130, AssetKeys.STAR_FILLED).setDisplaySize(70, 70);
-        this.add.image(cx,       creamY - 135, AssetKeys.STAR_FILLED).setDisplaySize(80, 80);
-        this.add.image(cx + 90, creamY - 130, AssetKeys.STAR_EMPTY).setDisplaySize(70, 70);
+        // Stars: render based on earned count
+        const starKeys: AssetKeys[] = [
+            this._starsEarned >= 1 ? AssetKeys.STAR_FILLED : AssetKeys.STAR_EMPTY,
+            this._starsEarned >= 2 ? AssetKeys.STAR_FILLED : AssetKeys.STAR_EMPTY,
+            this._starsEarned >= 3 ? AssetKeys.STAR_FILLED : AssetKeys.STAR_EMPTY,
+        ];
+        this.add.image(cx - 90, creamY - 130, starKeys[0]).setDisplaySize(70, 70);
+        this.add.image(cx,       creamY - 135, starKeys[1]).setDisplaySize(80, 80);
+        this.add.image(cx + 90, creamY - 130, starKeys[2]).setDisplaySize(70, 70);
 
         this.add.image(cx, creamY + 40, AssetKeys.CHEST_CLOSED).setDisplaySize(240, 140);
 
@@ -83,8 +94,16 @@ export class WinScene extends BaseScene {
             fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
         }).setOrigin(0.5, 0.5);
 
-        createButton(this, cx, creamY + 450, 'CONTINUE',
-            () => this.fadeOutTo('Map', 280),
-            { width: 320, fontSize: '32px', diagId: 'win_continue' });
+        // Button: NEXT LEVEL if there's a next level, BACK TO MAP otherwise
+        const nextId = this._levelId ? levelManager.getNextLevelId(this._levelId) : null;
+        if (nextId !== null) {
+            createButton(this, cx, creamY + 450, 'NEXT LEVEL',
+                () => this.fadeOutTo('Game', 280, { levelId: nextId }),
+                { width: 320, fontSize: '32px', diagId: 'win_next_level' });
+        } else {
+            createButton(this, cx, creamY + 450, 'BACK TO MAP',
+                () => this.fadeOutTo('Map', 280),
+                { width: 320, fontSize: '32px', diagId: 'win_back_to_map' });
+        }
     }
 }

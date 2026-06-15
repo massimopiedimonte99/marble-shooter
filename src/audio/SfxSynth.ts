@@ -217,6 +217,22 @@ class SfxSynth {
         src.connect(flt); flt.connect(ng); ng.connect(ctx.destination);
         src.start(t);
     }
+
+    // Two-note ascending ding — coin collected
+    coinPickup(): void {
+        const ctx = this._ctx_(); if (!ctx) return;
+        const t = ctx.currentTime;
+        for (const [offset, freq] of [[0, 880], [0.07, 1320]] as [number, number][]) {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0, t + offset);
+            g.gain.linearRampToValueAtTime(0.28, t + offset + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.18);
+            o.connect(g); g.connect(ctx.destination);
+            o.start(t + offset); o.stop(t + offset + 0.2);
+        }
+    }
 }
 
 export const sfxSynth = new SfxSynth();

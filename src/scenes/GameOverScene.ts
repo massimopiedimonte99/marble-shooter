@@ -9,6 +9,7 @@ import type { EndRunSceneData } from '@/scenes/types';
 
 export class GameOverScene extends BaseScene {
     private _data: EndRunSceneData = { score: 0, isHighScore: false, previousHigh: 0 };
+    private _levelId: number | null = null;
 
     constructor() { super('GameOver'); }
 
@@ -18,7 +19,8 @@ export class GameOverScene extends BaseScene {
             isHighScore: data?.isHighScore ?? false,
             previousHigh: data?.previousHigh ?? 0,
         };
-        diag.log('gameover_scene_init', { ...this._data });
+        this._levelId = data?.levelId ?? null;
+        diag.log('gameover_scene_init', { ...this._data, levelId: this._levelId });
     }
 
     create(): void {
@@ -70,9 +72,13 @@ export class GameOverScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(6);
 
-        const btn = createButton(this, cx, creamY + 450, 'BACK TO MAP',
-            () => this.fadeOutTo('Map', 280),
-            { width: 320, fontSize: '32px', diagId: 'gameover_back_to_map' });
+        const btnLabel = this._levelId ? 'TRY AGAIN' : 'BACK TO MAP';
+        const btnDiag  = this._levelId ? 'gameover_try_again' : 'gameover_back_to_map';
+        const btnAction = this._levelId
+            ? () => this.fadeOutTo('Game', 280, { levelId: this._levelId })
+            : () => this.fadeOutTo('Map', 280);
+        const btn = createButton(this, cx, creamY + 450, btnLabel, btnAction,
+            { width: 320, fontSize: '32px', diagId: btnDiag });
         btn.container.setDepth(6);
 
         this.fadeIn(180);

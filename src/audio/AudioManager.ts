@@ -29,6 +29,7 @@ class AudioManager {
             case AudioKeys.BOMB_CHARGE:    sfxSynth.bombCharge();     break;
             case AudioKeys.BOMB_FUSE:      sfxSynth.bombFuse();       break;
             case AudioKeys.BOMB_DETONATE:  sfxSynth.bombDetonate();   break;
+            case AudioKeys.COIN_PICKUP:    sfxSynth.coinPickup();     break;
         }
     }
 

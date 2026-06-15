@@ -1,6 +1,31 @@
 import type { LevelDefinition, ChapterDefinition } from './types';
+import { MarbleColor } from '@/gameplay/MarbleColor';
 import { CHAPTERS, chapterOfLevel } from './chapters';
+import { DIFFICULTY_CURVE, lerpDifficulty } from './difficulty';
 import { saveManager } from '@/state/SaveManager';
+
+/**
+ * Generates a pre-determined marble color sequence for a level.
+ * Colors are grouped into runs of random length centred on avgRunLength,
+ * ensuring consecutive runs always differ in color.
+ */
+export function generateChainSequence(
+    total: number,
+    colorCount: number,
+    avgRunLength: number,
+): MarbleColor[] {
+    const seq: MarbleColor[] = [];
+    let lastColor = -1;
+    while (seq.length < total) {
+        let c: number;
+        do { c = Math.floor(Math.random() * colorCount); } while (c === lastColor && colorCount > 1);
+        const runLen = Math.max(1, Math.round(avgRunLength * (0.5 + Math.random())));
+        const actual = Math.min(runLen, total - seq.length);
+        for (let i = 0; i < actual; i++) seq.push(c as MarbleColor);
+        lastColor = c;
+    }
+    return seq;
+}
 
 declare global {
     interface Window {
@@ -12,21 +37,19 @@ function generateLevel(id: number): LevelDefinition {
     const chapter = chapterOfLevel(id);
     const chapterIndex = id - chapter.firstLevelId + 1;
 
-    const chainLength = Math.round(24 + (id - 1) * 0.18);
-    const colorCount = Math.min(6, 3 + Math.floor((id - 1) / 40));
-    const chainSpeed = Math.min(2.2, 1 + (id - 1) * 0.0065);
+    const totalMarbles         = Math.round(lerpDifficulty(id, DIFFICULTY_CURVE.totalMarbles));
+    const colorCount           = Math.round(lerpDifficulty(id, DIFFICULTY_CURVE.colorCount));
+    const chainSpeedMultiplier = +lerpDifficulty(id, DIFFICULTY_CURVE.chainSpeedMultiplier).toFixed(2);
+    const avgRunLength         = +lerpDifficulty(id, DIFFICULTY_CURVE.avgRunLength).toFixed(2);
+    const chainSequence        = generateChainSequence(totalMarbles, colorCount, avgRunLength);
 
-    const baseScore = chainLength * 50;
+    const baseScore = totalMarbles * 50 * chainSpeedMultiplier;
     return {
-        id,
-        chapterId: chapter.id,
-        chapterIndex,
-        chainLength,
-        colorCount,
-        chainSpeed,
-        scoreFor1Star: baseScore,
-        scoreFor2Stars: Math.round(baseScore * 1.6),
-        scoreFor3Stars: Math.round(baseScore * 2.4),
+        id, chapterId: chapter.id, chapterIndex,
+        totalMarbles, colorCount, chainSpeedMultiplier, avgRunLength, chainSequence,
+        scoreFor1Star:  Math.round(baseScore),
+        scoreFor2Stars: Math.round(baseScore * 1.5),
+        scoreFor3Stars: Math.round(baseScore * 2.2),
     };
 }
 
