@@ -175,3 +175,5 @@ class SaveManager {
 }
 
 export const saveManager = new SaveManager();
+
+if (import.meta.env.DEV) (window as Window).__saveManager = saveManager;

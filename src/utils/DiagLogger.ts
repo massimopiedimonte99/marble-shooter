@@ -20,11 +20,12 @@ export type DiagKind =
     | 'powerup_bomb_fired'  | 'powerup_bomb_inserted' | 'powerup_bomb_impact'
     | 'chain_danger_enter' | 'chain_danger_exit'
     | 'scene_fade_in' | 'scene_fade_out'
-    | 'score_pulse' | 'bomb_badge_animate' | 'coin_hud_spin';
+    | 'score_pulse' | 'bomb_badge_animate' | 'coin_hud_spin'
+    | 'map_open' | 'map_node_tap' | 'map_node_locked_tap' | 'ad_watched';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }
 
-declare global { interface Window { __diagEvents?: DiagEntry[]; __game?: Phaser.Game } }
+declare global { interface Window { __diagEvents?: DiagEntry[]; __game?: Phaser.Game; __levelManager?: unknown; __saveManager?: unknown } }
 
 const DEV = import.meta.env.DEV;
 

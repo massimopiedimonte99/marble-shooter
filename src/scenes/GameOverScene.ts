@@ -70,9 +70,9 @@ export class GameOverScene extends BaseScene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(6);
 
-        const btn = createButton(this, cx, creamY + 450, 'TRY AGAIN',
-            () => this.fadeOutTo('Game', 280),
-            { width: 320, fontSize: '32px', diagId: 'gameover_retry' });
+        const btn = createButton(this, cx, creamY + 450, 'BACK TO MAP',
+            () => this.fadeOutTo('Map', 280),
+            { width: 320, fontSize: '32px', diagId: 'gameover_back_to_map' });
         btn.container.setDepth(6);
 
         this.fadeIn(180);

@@ -127,6 +127,7 @@ export class GameScene extends BaseScene {
     private _dangerHeartbeatTimer?: Phaser.Time.TimerEvent;
 
     // ── State ──────────────────────────────────────────────────────────────────
+    private _pendingLevelId: number | null = null;
     private _frameN = 0;
     private _spawnTimer?: Phaser.Time.TimerEvent;
     private _ended = false;
@@ -175,6 +176,10 @@ export class GameScene extends BaseScene {
     };
 
     constructor() { super('Game'); }
+
+    init(data: { levelId?: number }): void {
+        this._pendingLevelId = data?.levelId ?? null;
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     create(): void {

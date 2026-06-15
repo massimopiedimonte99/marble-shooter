@@ -4,6 +4,7 @@ import '@/levels/LevelManager';
 import { BootScene } from '@/scenes/BootScene';
 import { PreloadScene } from '@/scenes/PreloadScene';
 import { MenuScene } from '@/scenes/MenuScene';
+import { MapScene } from '@/scenes/MapScene';
 import { GameScene } from '@/scenes/GameScene';
 import { WinScene } from '@/scenes/WinScene';
 import { GameOverScene } from '@/scenes/GameOverScene';
@@ -19,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
         mode: Scale.FIT,
         autoCenter: Scale.CENTER_BOTH,
     },
-    scene: [BootScene, PreloadScene, MenuScene, GameScene, WinScene, GameOverScene, PauseScene],
+    scene: [BootScene, PreloadScene, MenuScene, MapScene, GameScene, WinScene, GameOverScene, PauseScene],
 };
 
 document.addEventListener('DOMContentLoaded', () => {

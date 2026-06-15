@@ -33,7 +33,7 @@ export class MenuScene extends BaseScene {
 
         createButton(this, cx, BTN_Y, 'PLAY', () => {
             this.eventBus.emit(GameEvent.MenuPlayPressed);
-            this.fadeOutTo('Game', 280);
+            this.fadeOutTo('Map', 280);
         }, { width: 300, diagId: 'menu_play' });
 
         // ── Sound toggle ─────────────────────────────────────────────────────────

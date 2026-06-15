@@ -83,8 +83,8 @@ export class WinScene extends BaseScene {
             fontFamily: 'Arial Black', fontSize: '30px', color: '#3a1a0e',
         }).setOrigin(0.5, 0.5);
 
-        createButton(this, cx, creamY + 450, 'PLAY AGAIN',
-            () => this.fadeOutTo('Game', 280),
-            { width: 320, fontSize: '32px', diagId: 'win_play_again' });
+        createButton(this, cx, creamY + 450, 'CONTINUE',
+            () => this.fadeOutTo('Map', 280),
+            { width: 320, fontSize: '32px', diagId: 'win_continue' });
     }
 }
