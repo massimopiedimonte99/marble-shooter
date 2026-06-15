@@ -1,7 +1,7 @@
 import type { LevelDefinition, ChapterDefinition } from './types';
 import { MarbleColor } from '@/gameplay/MarbleColor';
 import { CHAPTERS, chapterOfLevel } from './chapters';
-import { DIFFICULTY_CURVE, lerpDifficulty } from './difficulty';
+import { CHAPTER_DIFFICULTY } from './difficulty';
 import { saveManager } from '@/state/SaveManager';
 
 /**
@@ -19,7 +19,13 @@ export function generateChainSequence(
     while (seq.length < total) {
         let c: number;
         do { c = Math.floor(Math.random() * colorCount); } while (c === lastColor && colorCount > 1);
-        const runLen = Math.max(1, Math.round(avgRunLength * (0.5 + Math.random())));
+        // Geometric distribution capped at ceil(avgRunLength).
+        // Mean ≈ avgRunLength, more singletons than the old formula, and the cap
+        // prevents the unbounded tail from producing occasional very long runs.
+        const p   = Math.max(0, (avgRunLength - 1) / avgRunLength);
+        const cap = Math.max(2, Math.ceil(avgRunLength));
+        let runLen = 1;
+        while (Math.random() < p && runLen < cap) runLen++;
         const actual = Math.min(runLen, total - seq.length);
         for (let i = 0; i < actual; i++) seq.push(c as MarbleColor);
         lastColor = c;
@@ -37,10 +43,16 @@ function generateLevel(id: number): LevelDefinition {
     const chapter = chapterOfLevel(id);
     const chapterIndex = id - chapter.firstLevelId + 1;
 
-    const totalMarbles         = Math.round(lerpDifficulty(id, DIFFICULTY_CURVE.totalMarbles));
-    const colorCount           = Math.round(lerpDifficulty(id, DIFFICULTY_CURVE.colorCount));
-    const chainSpeedMultiplier = +lerpDifficulty(id, DIFFICULTY_CURVE.chainSpeedMultiplier).toFixed(2);
-    const avgRunLength         = +lerpDifficulty(id, DIFFICULTY_CURVE.avgRunLength).toFixed(2);
+    // t: 0 at chapter's first level, 1 at its last (always 20 levels per chapter)
+    const t = (id - chapter.firstLevelId) / 19;
+    const d = CHAPTER_DIFFICULTY[chapter.id - 1];
+
+    const lerp = (a: number, b: number) => a + (b - a) * t;
+
+    const totalMarbles         = Math.round(lerp(d.marblesStart, d.marblesEnd));
+    const colorCount           = Math.round(lerp(d.colorCountStart, d.colorCountEnd));
+    const chainSpeedMultiplier = +lerp(d.speedStart, d.speedEnd).toFixed(2);
+    const avgRunLength         = +lerp(d.avgRunStart, d.avgRunEnd).toFixed(2);
     const chainSequence        = generateChainSequence(totalMarbles, colorCount, avgRunLength);
 
     const baseScore = totalMarbles * 50 * chainSpeedMultiplier;
