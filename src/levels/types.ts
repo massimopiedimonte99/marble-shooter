@@ -11,9 +11,10 @@ export interface LevelDefinition {
     avgRunLength: number;
     chainSequence: MarbleColor[];
 
-    scoreFor1Star: number;
-    scoreFor2Stars: number;
-    scoreFor3Stars: number;
+    combosFor1Star: number;
+    combosFor2Stars: number;
+    combosFor3Stars: number;
+    pathTemplateId: string;
 }
 
 export interface ChapterDefinition {
