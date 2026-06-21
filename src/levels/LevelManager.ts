@@ -54,11 +54,14 @@ function generateLevel(id: number): LevelDefinition {
     const chainSpeedMultiplier = +lerp(d.speedStart, d.speedEnd).toFixed(2);
     const avgRunLength         = +lerp(d.avgRunStart, d.avgRunEnd).toFixed(2);
     const chainSequence        = generateChainSequence(totalMarbles, colorCount, avgRunLength);
+    const rushMult             = +lerp(d.rushMultStart, d.rushMultEnd).toFixed(2);
+    const rushDurationMs       = Math.round(lerp(d.rushDurationMsStart, d.rushDurationMsEnd));
 
     const baseScore = totalMarbles * 7 * chainSpeedMultiplier;
     return {
         id, chapterId: chapter.id, chapterIndex,
         totalMarbles, colorCount, chainSpeedMultiplier, avgRunLength, chainSequence,
+        rushMult, rushDurationMs,
         scoreFor1Star:  Math.round(baseScore),
         scoreFor2Stars: Math.round(baseScore * 1.5),
         scoreFor3Stars: Math.round(baseScore * 2.2),

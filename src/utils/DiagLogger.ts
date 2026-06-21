@@ -22,7 +22,7 @@ export type DiagKind =
     | 'scene_fade_in' | 'scene_fade_out'
     | 'score_pulse' | 'bomb_badge_animate' | 'coin_hud_spin'
     | 'map_open' | 'map_node_tap' | 'map_node_locked_tap' | 'ad_watched'
-    | 'level_loaded' | 'level_completed' | 'level_failed'
+    | 'level_loaded' | 'level_completed' | 'level_failed' | 'path_fallback'
     | 'combo_triggered';
 
 interface DiagEntry { kind: DiagKind; t: number; [k: string]: unknown; }

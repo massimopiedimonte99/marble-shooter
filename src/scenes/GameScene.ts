@@ -1,4 +1,4 @@
-import { Curves, Geom } from 'phaser';
+import { Geom } from 'phaser';
 import { BaseScene } from '@/scenes/BaseScene';
 import {
     GAME_WIDTH, GAME_HEIGHT,
@@ -28,6 +28,9 @@ import { audioManager } from '@/audio/AudioManager';
 import { AudioKeys } from '@/audio/AudioKeys';
 import { saveManager } from '@/state/SaveManager';
 import { levelManager, generateChainSequence } from '@/levels/LevelManager';
+import { getPathForLevel } from '@/levels/paths/index';
+import { WRAP_CCW } from '@/levels/paths/templates/wrap_ccw';
+import { DEFAULT_KNOBS } from '@/levels/paths/types';
 
 const INSERT_SETTLE_MS = 90;
 const RECOIL_MS = 200;
@@ -87,14 +90,6 @@ function bakePathGroove(scene: Phaser.Scene, path: Phaser.Curves.Path, depth: nu
     scene.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, KEY).setDepth(depth);
 }
 
-// ─── Corner bezier helpers ────────────────────────────────────────────────────
-// R = corner radius, K = 0.5523*R (circular arc bezier magic number)
-const buildCorner = (
-    path: Phaser.Curves.Path,
-    ex: number, ey: number,   // endpoint
-    c1x: number, c1y: number, // cp1
-    c2x: number, c2y: number, // cp2
-) => path.cubicBezierTo(ex, ey, c1x, c1y, c2x, c2y);
 
 export class GameScene extends BaseScene {
     public chain!: MarbleChain;
@@ -197,9 +192,13 @@ export class GameScene extends BaseScene {
         const cfg = _level ? {
             chainSequence:        _level.chainSequence,
             chainSpeedMultiplier: _level.chainSpeedMultiplier,
+            rushMult:             _level.rushMult,
+            rushDurationMs:       _level.rushDurationMs,
         } : {
             chainSequence:        generateChainSequence(CHAIN_INITIAL_MARBLES, MARBLE_COLOR_COUNT, 3.0),
             chainSpeedMultiplier: 1.0,
+            rushMult:             5.0,
+            rushDurationMs:       1000,
         };
 
         this.fadeIn();
@@ -213,33 +212,9 @@ export class GameScene extends BaseScene {
         // ── Background ──────────────────────────────────────────────────────────
         coverBackground(this, AssetKeys.BG_GAMEPLAY).setDepth(-10);
 
-        // ══════════════════════════════════════════════════════════════════════
-        // PATH — "The Rounded Serpent"
-        // Two nested rounded-rectangle loops, lineTo for straights (perfectly
-        // uniform arc-length) + cubicBezierTo for corners (circular-arc approx).
-        // All points in x:[55,665] y:[190,1005] — marbles fully on-screen.
-        // Arc-length parameterisation in MarbleChain ensures constant spacing.
-        // ══════════════════════════════════════════════════════════════════════
-        const path = new Curves.Path(-MARBLE_RADIUS, 190);
-
-        // ── Outer loop ──────────────────────────────────────────────────────────
-        path.lineTo(605, 190);
-        buildCorner(path, 665, 250, 638, 190, 665, 217);  // top-right  → ↓
-        path.lineTo(665, 945);
-        buildCorner(path, 605, 1005, 665, 978, 638, 1005); // bottom-right ↓ →
-        path.lineTo(115, 1005);
-        buildCorner(path, 55, 945, 88, 1005, 55, 978);  // bottom-left ← ↑
-        path.lineTo(55, 405);
-
-        // ── Transition outer left → inner (C1 at both ends: CP1 above start, CP2 above end) ─
-        path.cubicBezierTo(560, 405, 55, 345, 560, 330);
-
-        // ── Inner loop ─────────────────────────────────────────────────────────
-        path.lineTo(560, 825);
-        buildCorner(path, 490, 895, 560, 856, 529, 895);  // inner BR ↓ ←  R=70
-        path.lineTo(225, 895);
-        buildCorner(path, 155, 825, 194, 895, 155, 856);  // inner BL ← ↑  R=70
-        path.lineTo(155, 470);
+        const path = this._pendingLevelId
+            ? getPathForLevel(this._pendingLevelId)
+            : WRAP_CCW.build(DEFAULT_KNOBS); // sandbox fallback
         this._path = path;
 
         // ── Path groove (baked to texture — zero per-frame cost) ────────────────
@@ -257,15 +232,14 @@ export class GameScene extends BaseScene {
         this.marblePool = new MarblePool(this);
         this.chain = new MarbleChain(path, this.marblePool);
 
-        // Zuma initial rush: chain starts 5× fast, eases to level speed over 1s.
-        // This carries burst marbles from path entry (s=0) into view quickly.
-        const RUSH_MULT = 5.0;
-        const _rushRef = { v: RUSH_MULT };
-        this.chain.setSpeedMultiplier(cfg.chainSpeedMultiplier * RUSH_MULT);
+        // Zuma initial rush: chain starts fast, eases to level speed.
+        // rushMult and rushDurationMs come from difficulty.ts per chapter.
+        const _rushRef = { v: cfg.rushMult };
+        this.chain.setSpeedMultiplier(cfg.chainSpeedMultiplier * cfg.rushMult);
         this.tweens.add({
             targets: _rushRef,
             v: 1.0,
-            duration: 1000,
+            duration: cfg.rushDurationMs,
             ease: 'Sine.easeOut',
             onUpdate: () => this.chain.setSpeedMultiplier(cfg.chainSpeedMultiplier * _rushRef.v),
         });

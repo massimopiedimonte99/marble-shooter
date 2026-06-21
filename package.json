@@ -18,7 +18,8 @@
     "build": "node log.js build & vite build --config vite/config.prod.mjs",
     "dev-nolog": "vite --config vite/config.dev.mjs",
     "build-nolog": "vite build --config vite/config.prod.mjs",
-    "asset:split": "tsx scripts/asset-split.ts"
+    "asset:split": "tsx scripts/asset-split.ts",
+    "validate:paths": "tsx scripts/validate-paths.ts"
   },
   "devDependencies": {
     "@types/sharp": "^0.32.0",
