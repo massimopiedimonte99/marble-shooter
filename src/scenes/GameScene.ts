@@ -31,6 +31,8 @@ import { levelManager, generateChainSequence } from '@/levels/LevelManager';
 import { getPathForLevel } from '@/levels/paths/index';
 import { WRAP_CCW } from '@/levels/paths/templates/wrap_ccw';
 import { DEFAULT_KNOBS } from '@/levels/paths/types';
+import { themeOfLevel } from '@/levels/themes';
+import type { ChapterTheme } from '@/levels/themes';
 
 const INSERT_SETTLE_MS = 90;
 const RECOIL_MS = 200;
@@ -45,7 +47,7 @@ const coinReward = (count: number): number => COIN_REWARD[count] ?? count * 50;
  * Each layer is a single filled polygon traced along the path normals — no line
  * caps, no joint artifacts at corners.
  */
-function bakePathGroove(scene: Phaser.Scene, path: Phaser.Curves.Path, depth: number): void {
+function bakePathGroove(scene: Phaser.Scene, path: Phaser.Curves.Path, depth: number, theme: ChapterTheme): void {
     const pts = path.getPoints(256);
     const n = pts.length;
 
@@ -61,14 +63,7 @@ function bakePathGroove(scene: Phaser.Scene, path: Phaser.Curves.Path, depth: nu
         oy[i] = dx / len;
     }
 
-    const LAYERS: [number, number, number][] = [
-        [40, 0x1A0900, 0.50],
-        [33, 0x4B2412, 1.00],
-        [26, 0x8B5A2B, 1.00],
-        [19, 0xBE8540, 0.95],
-        [11, 0xD9AC62, 0.78],
-        [4, 0xF0D895, 0.40],
-    ];
+    const LAYERS = theme.pathPalette;
 
     const gfx = scene.add.graphics();
     for (const [hw, color, alpha] of LAYERS) {
@@ -209,8 +204,11 @@ export class GameScene extends BaseScene {
         const totalSpan = (POWERUP_COUNT - 1) * POWERUP_SPACING;
         const startX = (GAME_WIDTH - totalSpan) / 2;
 
+        const theme = themeOfLevel(this._pendingLevelId ?? 1);
+
         // ── Background ──────────────────────────────────────────────────────────
-        coverBackground(this, AssetKeys.BG_GAMEPLAY).setDepth(-10);
+        const bg = coverBackground(this, AssetKeys.BG_GAMEPLAY).setDepth(-10);
+        if (theme.bgTint !== 0xffffff) bg.setTint(theme.bgTint);
 
         const path = this._pendingLevelId
             ? getPathForLevel(this._pendingLevelId)
@@ -218,15 +216,16 @@ export class GameScene extends BaseScene {
         this._path = path;
 
         // ── Path groove (baked to texture — zero per-frame cost) ────────────────
-        bakePathGroove(this, path, -5);
+        bakePathGroove(this, path, -5, theme);
 
         // ── Flow dots (animated, updated in update()) ────────────────────────────
         this._flowGfx = this.add.graphics().setDepth(-4);
 
         // ── Drain hole ───────────────────────────────────────────────────────────
         const endPt = path.getEndPoint();
-        this.add.image(endPt.x, endPt.y, AssetKeys.DRAIN_HOLE)
+        const drain = this.add.image(endPt.x, endPt.y, AssetKeys.DRAIN_HOLE)
             .setDisplaySize(100, 100).setDepth(-3);
+        if (theme.drainTint !== 0xffffff) drain.setTint(theme.drainTint);
 
         // ── Gameplay objects ─────────────────────────────────────────────────────
         this.marblePool = new MarblePool(this);

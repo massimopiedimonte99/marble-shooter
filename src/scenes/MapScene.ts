@@ -6,6 +6,7 @@ import { diag } from '@/utils/DiagLogger';
 import { saveManager } from '@/state/SaveManager';
 import { levelManager } from '@/levels/LevelManager';
 import { CHAPTERS, CHAPTER_BG_TINTS, CHAPTER_NODE_TINTS, BG_TINT_ALPHA } from '@/levels/chapters';
+import { themeOfLevel } from '@/levels/themes';
 
 // ── Layout constants ────────────────────────────────────────────────────────
 const NODE_SPACING   = 150;
@@ -136,12 +137,13 @@ export class MapScene extends BaseScene {
         const x0 = cx - w / 2;
         const y0 = cy - h / 2;
 
+        const ch = CHAPTERS[chapterId - 1];
+        const accent = themeOfLevel(ch.firstLevelId).accentHex;
+
         gfx.fillStyle(0xf4e5c2, 0.95);
         gfx.fillRoundedRect(x0, y0, w, h, 30);
-        gfx.lineStyle(6, 0xe87363, 1);
+        gfx.lineStyle(6, accent, 1);
         gfx.strokeRoundedRect(x0, y0, w, h, 30);
-
-        const ch = CHAPTERS[chapterId - 1];
         const t1 = this.add.text(cx, cy - 22, `CHAPTER ${ch.id}`, {
             fontFamily: 'Arial Black', fontSize: '22px',
             color: '#2da6a8', stroke: '#f4e5c2', strokeThickness: 2,

@@ -33,4 +33,6 @@ export enum AssetKeys {
     STAR_FILLED         = 'star_filled',
     STAR_EMPTY          = 'star_empty',
     DRAIN_HOLE          = 'drain_hole',
+    PANEL_DAILY         = 'panel_daily', 
+    STREAK_DOT          = 'streak_dot'
 }

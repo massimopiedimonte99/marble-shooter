@@ -55,6 +55,8 @@ export class PreloadScene extends BaseScene {
         this.load.image(AssetKeys.STAR_FILLED,         'star_filled.png');
         this.load.image(AssetKeys.STAR_EMPTY,          'star_empty.png');
         this.load.image(AssetKeys.DRAIN_HOLE,          'drain_hole.png');
+        this.load.image(AssetKeys.PANEL_DAILY,         'panel_daily.png');
+        this.load.image(AssetKeys.STREAK_DOT,          'streak_dot.png');
     }
 
     create(): void {
